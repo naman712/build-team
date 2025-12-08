@@ -231,37 +231,32 @@ export function SwipeDeck() {
         ))}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-center gap-6 py-6">
-        <Button
-          variant="swipe"
-          size="icon-xl"
-          className="bg-card text-destructive hover:bg-destructive hover:text-destructive-foreground"
-          onClick={() => handleButtonSwipe("left")}
-        >
-          <X className="w-8 h-8" />
-        </Button>
-        
-        {lastSwiped && (
+      {/* Swipe Instructions */}
+      <div className="flex items-center justify-center gap-8 py-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <X className="w-5 h-5 text-destructive" />
+          <span>Swipe left to skip</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Heart className="w-5 h-5 text-success" />
+          <span>Swipe right to connect</span>
+        </div>
+      </div>
+
+      {/* Undo Button - Only show if there's a last swiped profile */}
+      {lastSwiped && (
+        <div className="flex justify-center pb-4">
           <Button
-            variant="swipe"
-            size="icon-lg"
-            className="bg-card text-muted-foreground hover:bg-muted"
+            variant="outline"
+            size="sm"
+            className="gap-2"
             onClick={handleUndo}
           >
-            <RotateCcw className="w-6 h-6" />
+            <RotateCcw className="w-4 h-4" />
+            Undo
           </Button>
-        )}
-        
-        <Button
-          variant="swipe"
-          size="icon-xl"
-          className="bg-success text-success-foreground hover:bg-success/90"
-          onClick={() => handleButtonSwipe("right")}
-        >
-          <Heart className="w-8 h-8" />
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
