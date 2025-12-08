@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 type Profile = Tables<'profiles'>;
 type Experience = Tables<'experiences'>;
@@ -115,6 +116,7 @@ export default function UserProfile() {
       console.error('Error sending request:', error);
       toast.error('Failed to send connection request');
     } else {
+      playSoundEffect('connectionRequest');
       toast.success('Connection request sent!');
       setConnectionStatus('pending_sent');
     }
@@ -135,6 +137,7 @@ export default function UserProfile() {
       console.error('Error accepting request:', error);
       toast.error('Failed to accept connection request');
     } else {
+      playSoundEffect('success');
       toast.success('Connection accepted!');
       setConnectionStatus('connected');
     }
