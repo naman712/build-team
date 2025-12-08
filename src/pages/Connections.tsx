@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Users, Loader2 } from "lucide-react";
+import { Users, Loader2, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { ConnectionCard } from "@/components/connections/ConnectionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -20,6 +22,7 @@ interface ConnectionWithProfile {
     photo_url: string | null;
     looking_for: string | null;
     city: string | null;
+    interests: string[] | null;
   };
   receiver_profile: {
     id: string;
@@ -27,6 +30,7 @@ interface ConnectionWithProfile {
     photo_url: string | null;
     looking_for: string | null;
     city: string | null;
+    interests: string[] | null;
   };
 }
 
@@ -35,6 +39,8 @@ export default function Connections() {
   const navigate = useNavigate();
   const [connections, setConnections] = useState<ConnectionWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
 
   const fetchConnections = async () => {
     if (!profile) return;
@@ -51,14 +57,16 @@ export default function Connections() {
           name,
           photo_url,
           looking_for,
-          city
+          city,
+          interests
         ),
         receiver:profiles!connections_receiver_id_fkey (
           id,
           name,
           photo_url,
           looking_for,
-          city
+          city,
+          interests
         )
       `)
       .or(`requester_id.eq.${profile.id},receiver_id.eq.${profile.id}`)
@@ -89,13 +97,45 @@ export default function Connections() {
     }
   }, [profile]);
 
-  const pendingReceived = connections.filter(
-    (c) => c.status === 'pending' && c.receiver_id === profile?.id
+  // Get all unique interests from connections for filter chips
+  const allInterests = useMemo(() => {
+    const interests = new Set<string>();
+    connections.forEach((conn) => {
+      const otherProfile = getOtherProfile(conn);
+      otherProfile.interests?.forEach((interest) => interests.add(interest));
+    });
+    return Array.from(interests).slice(0, 10); // Limit to 10 interests
+  }, [connections, profile?.id]);
+
+  // Filter function for connections
+  const filterConnections = (conns: ConnectionWithProfile[]) => {
+    return conns.filter((conn) => {
+      const otherProfile = getOtherProfile(conn);
+      const searchLower = searchQuery.toLowerCase();
+      
+      // Search by name, city, or looking_for
+      const matchesSearch = !searchQuery || 
+        (otherProfile.name?.toLowerCase().includes(searchLower)) ||
+        (otherProfile.city?.toLowerCase().includes(searchLower)) ||
+        (otherProfile.looking_for?.toLowerCase().includes(searchLower));
+      
+      // Filter by interest
+      const matchesInterest = !selectedInterest ||
+        otherProfile.interests?.includes(selectedInterest);
+      
+      return matchesSearch && matchesInterest;
+    });
+  };
+
+  const pendingReceived = filterConnections(
+    connections.filter((c) => c.status === 'pending' && c.receiver_id === profile?.id)
   );
-  const pendingSent = connections.filter(
-    (c) => c.status === 'pending' && c.requester_id === profile?.id
+  const pendingSent = filterConnections(
+    connections.filter((c) => c.status === 'pending' && c.requester_id === profile?.id)
   );
-  const connected = connections.filter((c) => c.status === 'accepted');
+  const connected = filterConnections(
+    connections.filter((c) => c.status === 'accepted')
+  );
 
   const getOtherProfile = (conn: ConnectionWithProfile) => {
     return conn.requester_id === profile?.id ? conn.receiver_profile : conn.requester_profile;
@@ -186,6 +226,52 @@ export default function Connections() {
             </p>
           </motion.div>
 
+          {/* Search and Filters */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-6 space-y-4"
+          >
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, city, or what they're looking for..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            
+            {allInterests.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <span className="text-sm text-muted-foreground py-1">Interests:</span>
+                {allInterests.map((interest) => (
+                  <Badge
+                    key={interest}
+                    variant={selectedInterest === interest ? "default" : "outline"}
+                    className="cursor-pointer hover:bg-primary/10"
+                    onClick={() => setSelectedInterest(
+                      selectedInterest === interest ? null : interest
+                    )}
+                  >
+                    {interest}
+                    {selectedInterest === interest && (
+                      <X className="ml-1 h-3 w-3" />
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </motion.div>
           <Tabs defaultValue="received" className="w-full">
             <TabsList className="w-full grid grid-cols-3 mb-6">
               <TabsTrigger value="received" className="relative text-xs sm:text-sm px-2 sm:px-3">
