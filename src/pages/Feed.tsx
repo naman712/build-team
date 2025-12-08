@@ -88,6 +88,53 @@ export default function Feed() {
 
   useEffect(() => {
     fetchPosts();
+
+    // Real-time subscription for new posts
+    const channel = supabase
+      .channel('posts-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'posts' },
+        async (payload) => {
+          const newPost = payload.new as any;
+          
+          // Fetch the profile for the new post
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('id, name, photo_url, looking_for')
+            .eq('id', newPost.profile_id)
+            .single();
+
+          if (profileData) {
+            const formattedPost: PostWithAuthor = {
+              id: newPost.id,
+              content: newPost.content,
+              image_url: newPost.image_url,
+              tags: newPost.tags || [],
+              created_at: newPost.created_at,
+              profile_id: newPost.profile_id,
+              profile: profileData,
+              likes_count: 0,
+              comments_count: 0,
+              user_liked: false,
+            };
+            
+            setPosts(prev => [formattedPost, ...prev]);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'posts' },
+        (payload) => {
+          setPosts(prev => prev.filter(p => p.id !== payload.old.id));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [profile]);
 
   const handleNewPost = async (content: string) => {
