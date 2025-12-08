@@ -181,7 +181,7 @@ export default function Profile() {
                   </p>
                 </div>
                 
-                <Button variant="outline" className="gap-2" onClick={() => navigate('/onboarding')}>
+                <Button variant="outline" className="gap-2" onClick={() => navigate('/onboarding?edit=true')}>
                   <Edit2 className="w-4 h-4" />
                   Edit Profile
                 </Button>
