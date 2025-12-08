@@ -191,7 +191,7 @@ export default function Feed() {
     };
   }, [profile]);
 
-  const handleNewPost = async (content: string) => {
+  const handleNewPost = async (content: string, imageUrl?: string) => {
     if (!profile) {
       toast.error("Please log in to create a post");
       return;
@@ -208,6 +208,7 @@ export default function Feed() {
         profile_id: profile.id,
         content,
         tags: [],
+        image_url: imageUrl || null,
       });
 
     if (error) {

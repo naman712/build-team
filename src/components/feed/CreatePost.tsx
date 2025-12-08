@@ -1,29 +1,105 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Image, Smile, Send, X } from "lucide-react";
+import { Image, Smile, Send, X, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CreatePostProps {
-  onPost?: (content: string) => void;
+  onPost?: (content: string, imageUrl?: string) => void;
 }
 
 export function CreatePost({ onPost }: CreatePostProps) {
   const { profile } = useProfile();
+  const { user } = useAuth();
   const [content, setContent] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePost = () => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!selectedImage || !user) return null;
+
+    const fileExt = selectedImage.name.split(".").pop();
+    const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("post-images")
+      .upload(fileName, selectedImage);
+
+    if (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from("post-images")
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  };
+
+  const handlePost = async () => {
     if (!content.trim()) {
       toast.error("Please write something to post!");
       return;
     }
-    onPost?.(content);
+
+    setIsUploading(true);
+    let imageUrl: string | undefined;
+
+    if (selectedImage) {
+      const uploadedUrl = await uploadImage();
+      if (uploadedUrl) {
+        imageUrl = uploadedUrl;
+      }
+    }
+
+    onPost?.(content, imageUrl);
     setContent("");
+    setSelectedImage(null);
+    setImagePreview(null);
     setIsExpanded(false);
+    setIsUploading(false);
   };
 
   return (
@@ -61,6 +137,7 @@ export function CreatePost({ onPost }: CreatePostProps) {
                     onClick={() => {
                       setIsExpanded(false);
                       setContent("");
+                      removeImage();
                     }}
                   >
                     <X className="w-4 h-4" />
@@ -72,6 +149,25 @@ export function CreatePost({ onPost }: CreatePostProps) {
                 </p>
               )}
             </div>
+
+            {/* Image Preview */}
+            {imagePreview && isExpanded && (
+              <div className="relative mt-3">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full max-h-64 object-cover rounded-xl"
+                />
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute top-2 right-2 w-8 h-8 bg-background/80 hover:bg-background"
+                  onClick={removeImage}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -86,7 +182,19 @@ export function CreatePost({ onPost }: CreatePostProps) {
           >
             <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-border/50">
               <div className="flex items-center gap-0.5 sm:gap-1">
-                <Button variant="ghost" size="sm" className="text-muted-foreground px-2 sm:px-3 text-xs sm:text-sm">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageSelect}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-muted-foreground px-2 sm:px-3 text-xs sm:text-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Image className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
                   <span className="hidden sm:inline">Photo</span>
                 </Button>
@@ -98,11 +206,15 @@ export function CreatePost({ onPost }: CreatePostProps) {
               
               <Button
                 onClick={handlePost}
-                disabled={!content.trim()}
+                disabled={!content.trim() || isUploading}
                 className="gap-1 sm:gap-2 text-sm"
                 size="sm"
               >
-                <Send className="w-3 h-3 sm:w-4 sm:h-4" />
+                {isUploading ? (
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                ) : (
+                  <Send className="w-3 h-3 sm:w-4 sm:h-4" />
+                )}
                 Post
               </Button>
             </div>
