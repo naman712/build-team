@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Send, MessageSquare, Loader2 } from "lucide-react";
+import { Search, Send, MessageSquare, Loader2, Paperclip, Video, X, FileText, Image as ImageIcon } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,13 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ChatPreview {
   connectionId: string;
@@ -27,18 +33,24 @@ interface Message {
   content: string;
   created_at: string;
   read_at: string | null;
+  attachment_url?: string | null;
 }
 
 export default function Messages() {
   const [searchParams] = useSearchParams();
   const { profile } = useProfile();
+  const { user } = useAuth();
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatPreview | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,7 +97,7 @@ export default function Messages() {
         
         const { data: lastMsg } = await supabase
           .from('messages')
-          .select('content, created_at')
+          .select('content, created_at, attachment_url')
           .eq('connection_id', conn.id)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -98,12 +110,16 @@ export default function Messages() {
           .neq('sender_id', profile.id)
           .is('read_at', null);
 
+        const lastMessageText = lastMsg?.attachment_url 
+          ? '📎 Attachment' 
+          : (lastMsg?.content || 'Start a conversation');
+
         return {
           connectionId: conn.id,
           otherProfileId: otherProfile.id,
           name: otherProfile.name || 'Anonymous',
           avatar: otherProfile.photo_url || '',
-          lastMessage: lastMsg?.content || 'Start a conversation',
+          lastMessage: lastMessageText,
           timestamp: lastMsg?.created_at ? formatTime(lastMsg.created_at) : '',
           unread: unreadCount || 0,
         };
@@ -181,16 +197,81 @@ export default function Messages() {
     }
   }, [selectedChat]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File must be less than 10MB");
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Create preview for images
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadAttachment = async (): Promise<string | null> => {
+    if (!selectedFile || !user) return null;
+
+    setUploadingFile(true);
+    const fileExt = selectedFile.name.split(".").pop();
+    const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("chat-attachments")
+      .upload(fileName, selectedFile);
+
+    if (error) {
+      console.error("Error uploading file:", error);
+      toast.error("Failed to upload file");
+      setUploadingFile(false);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from("chat-attachments")
+      .getPublicUrl(fileName);
+
+    setUploadingFile(false);
+    return data.publicUrl;
+  };
+
   const handleSend = async () => {
-    if (!newMessage.trim() || !selectedChat || !profile) return;
+    if ((!newMessage.trim() && !selectedFile) || !selectedChat || !profile) return;
 
     setSendingMessage(true);
+    
+    let attachmentUrl: string | null = null;
+    if (selectedFile) {
+      attachmentUrl = await uploadAttachment();
+    }
+
     const { error } = await supabase
       .from('messages')
       .insert({
         connection_id: selectedChat.connectionId,
         sender_id: profile.id,
-        content: newMessage.trim(),
+        content: newMessage.trim() || (attachmentUrl ? '' : ''),
+        attachment_url: attachmentUrl,
       });
 
     setSendingMessage(false);
@@ -202,6 +283,12 @@ export default function Messages() {
     }
 
     setNewMessage("");
+    removeFile();
+  };
+
+  const handleGoogleMeet = () => {
+    // Open Google Calendar to create a new meeting event
+    window.open('https://calendar.google.com/calendar/u/0/r/eventedit', '_blank');
   };
 
   const formatTime = (timestamp: string) => {
@@ -222,6 +309,14 @@ export default function Messages() {
   const formatMessageTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const isImageUrl = (url: string) => {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+  };
+
+  const getFileName = (url: string) => {
+    return url.split('/').pop() || 'attachment';
   };
 
   if (loading) {
@@ -321,23 +416,41 @@ export default function Messages() {
           {selectedChat ? (
             <div className="flex-1 flex flex-col">
               {/* Chat Header */}
-              <div className="p-4 border-b border-border flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="md:hidden"
-                  onClick={() => setSelectedChat(null)}
-                >
-                  ←
-                </Button>
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={selectedChat.avatar} />
-                  <AvatarFallback>{selectedChat.name[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-semibold">{selectedChat.name}</h3>
-                  <p className="text-xs text-muted-foreground">Online</p>
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="md:hidden"
+                    onClick={() => setSelectedChat(null)}
+                  >
+                    ←
+                  </Button>
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={selectedChat.avatar} />
+                    <AvatarFallback>{selectedChat.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold">{selectedChat.name}</h3>
+                    <p className="text-xs text-muted-foreground">Online</p>
+                  </div>
                 </div>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleGoogleMeet}
+                      className="text-muted-foreground hover:text-primary"
+                    >
+                      <Video className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Schedule Google Meet</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
               {/* Messages */}
@@ -360,7 +473,39 @@ export default function Messages() {
                           : "bg-secondary rounded-bl-md"
                       )}
                     >
-                      <p className="text-sm">{message.content}</p>
+                      {/* Attachment */}
+                      {message.attachment_url && (
+                        <div className="mb-2">
+                          {isImageUrl(message.attachment_url) ? (
+                            <a href={message.attachment_url} target="_blank" rel="noopener noreferrer">
+                              <img 
+                                src={message.attachment_url} 
+                                alt="Attachment" 
+                                className="max-w-full max-h-48 rounded-lg object-cover"
+                              />
+                            </a>
+                          ) : (
+                            <a 
+                              href={message.attachment_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className={cn(
+                                "flex items-center gap-2 p-2 rounded-lg",
+                                message.sender_id === profile?.id
+                                  ? "bg-primary-foreground/10 hover:bg-primary-foreground/20"
+                                  : "bg-background/50 hover:bg-background/80"
+                              )}
+                            >
+                              <FileText className="w-5 h-5 flex-shrink-0" />
+                              <span className="text-sm truncate">{getFileName(message.attachment_url)}</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      
+                      {message.content && (
+                        <p className="text-sm">{message.content}</p>
+                      )}
                       <p className={cn(
                         "text-xs mt-1",
                         message.sender_id === profile?.id
@@ -375,9 +520,58 @@ export default function Messages() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* File Preview */}
+              {selectedFile && (
+                <div className="px-4 py-2 border-t border-border bg-secondary/30">
+                  <div className="flex items-center gap-3">
+                    {filePreview ? (
+                      <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
+                    ) : (
+                      <div className="w-16 h-16 bg-secondary rounded-lg flex items-center justify-center">
+                        <FileText className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={removeFile}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Message Input */}
               <div className="p-4 border-t border-border">
                 <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  />
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={sendingMessage}
+                        className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                      >
+                        <Paperclip className="w-5 h-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Attach file</p>
+                    </TooltipContent>
+                  </Tooltip>
+
                   <Input
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
@@ -386,8 +580,13 @@ export default function Messages() {
                     onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                     disabled={sendingMessage}
                   />
-                  <Button onClick={handleSend} size="icon" disabled={sendingMessage}>
-                    {sendingMessage ? (
+                  
+                  <Button 
+                    onClick={handleSend} 
+                    size="icon" 
+                    disabled={sendingMessage || uploadingFile || (!newMessage.trim() && !selectedFile)}
+                  >
+                    {sendingMessage || uploadingFile ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Send className="w-4 h-4" />

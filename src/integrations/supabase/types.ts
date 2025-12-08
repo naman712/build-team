@@ -128,6 +128,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachment_url: string | null
           connection_id: string
           content: string
           created_at: string | null
@@ -136,6 +137,7 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          attachment_url?: string | null
           connection_id: string
           content: string
           created_at?: string | null
@@ -144,6 +146,7 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          attachment_url?: string | null
           connection_id?: string
           content?: string
           created_at?: string | null
