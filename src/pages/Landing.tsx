@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Users, MessageCircle, Lightbulb, Rocket, Star, CheckCircle } from "lucide-react";
+import { ArrowRight, Users, MessageCircle, Lightbulb, Rocket, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -102,9 +102,6 @@ export default function Landing() {
                   Start Matching
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
-              </Button>
-              <Button variant="outline" size="xl" asChild>
-                <Link to="/feed">Explore Feed</Link>
               </Button>
             </div>
           </motion.div>

@@ -1,60 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { Users } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { ConnectionCard, ConnectionData } from "@/components/connections/ConnectionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
-const initialConnections: ConnectionData[] = [
-  {
-    id: "1",
-    name: "Emma Wilson",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop",
-    role: "UX Designer @ Meta",
-    city: "New York",
-    lookingFor: "Technical Co-founder",
-    status: "pending_received",
-  },
-  {
-    id: "2",
-    name: "David Kim",
-    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop",
-    role: "Software Engineer @ Google",
-    city: "Seattle",
-    lookingFor: "Business Co-founder",
-    status: "pending_received",
-  },
-  {
-    id: "3",
-    name: "Sarah Chen",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
-    role: "Product Manager @ Stripe",
-    city: "San Francisco",
-    lookingFor: "Technical Partner",
-    status: "connected",
-  },
-  {
-    id: "4",
-    name: "Marcus Johnson",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
-    role: "CTO @ Startup",
-    city: "Austin",
-    lookingFor: "Business Co-founder",
-    status: "connected",
-  },
-  {
-    id: "5",
-    name: "Lisa Park",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop",
-    role: "Founder @ TechStart",
-    city: "Boston",
-    lookingFor: "Marketing Co-founder",
-    status: "pending_sent",
-  },
-];
-
 export default function Connections() {
-  const [connections, setConnections] = useState<ConnectionData[]>(initialConnections);
+  const [connections, setConnections] = useState<ConnectionData[]>([]);
 
   const pendingReceived = connections.filter((c) => c.status === "pending_received");
   const pendingSent = connections.filter((c) => c.status === "pending_sent");
@@ -158,8 +111,14 @@ export default function Connections() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="text-center py-12 text-muted-foreground">
-      <p>{message}</p>
+    <div className="text-center py-12">
+      <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+        <Users className="w-8 h-8 text-muted-foreground" />
+      </div>
+      <p className="text-muted-foreground">{message}</p>
+      <p className="text-sm text-muted-foreground mt-2">
+        Start swiping to find your co-founder!
+      </p>
     </div>
   );
 }
