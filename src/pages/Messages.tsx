@@ -372,7 +372,7 @@ export default function Messages() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+      <div className="min-h-screen bg-background pb-24 md:pb-0 md:pt-20">
         <Navbar />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -383,7 +383,7 @@ export default function Messages() {
 
   if (chats.length === 0) {
     return (
-      <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+      <div className="min-h-screen bg-background pb-24 md:pb-0 md:pt-20">
         <Navbar />
         
         <main className="container mx-auto px-4 py-6">
@@ -411,11 +411,11 @@ export default function Messages() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
+      <main className="flex-1 container mx-auto px-4 py-4 pb-24 md:pb-4 md:pt-24">
+        <div className="max-w-4xl mx-auto h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)] flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
           {/* Chat List */}
           <div className={cn(
             "w-full md:w-80 border-r border-border flex flex-col",
