@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Send } from "lucide-react";
+import { Search, Send, MessageSquare } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,42 +23,45 @@ interface Message {
   timestamp: string;
 }
 
-const mockChats: ChatPreview[] = [
-  {
-    id: "1",
-    name: "Sarah Chen",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-    lastMessage: "That sounds great! Let's schedule a call to discuss the technical roadmap.",
-    timestamp: "2m ago",
-    unread: 2,
-  },
-  {
-    id: "2",
-    name: "Marcus Johnson",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-    lastMessage: "I've been working on something similar. Would love to hear your thoughts!",
-    timestamp: "1h ago",
-    unread: 0,
-  },
-];
-
-const mockMessages: Message[] = [
-  { id: "1", sender: "them", content: "Hey! I saw your profile and I'm really interested in your AI productivity idea.", timestamp: "10:30 AM" },
-  { id: "2", sender: "me", content: "Thanks for reaching out! I've been looking for a technical co-founder who understands ML.", timestamp: "10:32 AM" },
-  { id: "3", sender: "them", content: "I've worked on several ML projects at Google. Would love to learn more about your vision.", timestamp: "10:35 AM" },
-  { id: "4", sender: "me", content: "That's perfect! The core idea is to build an AI assistant that learns work patterns.", timestamp: "10:38 AM" },
-  { id: "5", sender: "them", content: "That sounds great! Let's schedule a call to discuss the technical roadmap.", timestamp: "10:40 AM" },
-];
-
 export default function Messages() {
-  const [selectedChat, setSelectedChat] = useState<ChatPreview | null>(mockChats[0]);
+  const [chats] = useState<ChatPreview[]>([]);
+  const [selectedChat, setSelectedChat] = useState<ChatPreview | null>(null);
+  const [messages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
   const handleSend = () => {
     if (!newMessage.trim()) return;
-    // In a real app, this would send the message
     setNewMessage("");
   };
+
+  if (chats.length === 0) {
+    return (
+      <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+        <Navbar />
+        
+        <main className="container mx-auto px-4 py-6">
+          <div className="max-w-2xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16"
+            >
+              <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">No messages yet</h2>
+              <p className="text-muted-foreground mb-6">
+                Connect with founders to start chatting!
+              </p>
+              <Button asChild>
+                <a href="/discover">Find Co-founders</a>
+              </Button>
+            </motion.div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
@@ -82,7 +85,7 @@ export default function Messages() {
             </div>
             
             <div className="flex-1 overflow-y-auto">
-              {mockChats.map((chat) => (
+              {chats.map((chat) => (
                 <motion.button
                   key={chat.id}
                   whileTap={{ scale: 0.98 }}
@@ -138,7 +141,7 @@ export default function Messages() {
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {mockMessages.map((message) => (
+                {messages.map((message) => (
                   <motion.div
                     key={message.id}
                     initial={{ opacity: 0, y: 10 }}
