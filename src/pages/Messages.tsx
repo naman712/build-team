@@ -411,11 +411,12 @@ export default function Messages() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background">
       <Navbar />
       
-      <main className="flex-1 container mx-auto px-4 py-4 pb-24 md:pb-4 md:pt-24">
-        <div className="max-w-4xl mx-auto h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)] flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
+      {/* pt-16 for top navbar, pb-20 for bottom navbar */}
+      <main className="container mx-auto px-4 pt-16 pb-20 md:pt-16 md:pb-4">
+        <div className="max-w-4xl mx-auto h-[calc(100vh-9rem)] md:h-[calc(100vh-6rem)] flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
           {/* Chat List */}
           <div className={cn(
             "w-full md:w-80 border-r border-border flex flex-col",
