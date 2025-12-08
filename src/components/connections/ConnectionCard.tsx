@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MessageCircle, Check, X, MapPin, Briefcase } from "lucide-react";
+import { MessageCircle, Check, X, MapPin, Briefcase, UserMinus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ interface ConnectionCardProps {
   onAccept?: (id: string) => void;
   onReject?: (id: string) => void;
   onMessage?: (id: string) => void;
+  onRemove?: (id: string) => void;
 }
 
 export function ConnectionCard({
@@ -28,6 +29,7 @@ export function ConnectionCard({
   onAccept,
   onReject,
   onMessage,
+  onRemove,
 }: ConnectionCardProps) {
   const navigate = useNavigate();
 
@@ -123,15 +125,25 @@ export function ConnectionCard({
         )}
         
         {connection.status === "connected" && (
-          <Button
-            variant="default"
-            size="sm"
-            className="w-full gap-2"
-            onClick={() => onMessage?.(connection.id)}
-          >
-            <MessageCircle className="w-4 h-4" />
-            Message
-          </Button>
+          <div className="flex gap-2 w-full">
+            <Button
+              variant="default"
+              size="sm"
+              className="flex-1 gap-2"
+              onClick={() => onMessage?.(connection.id)}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Message
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              onClick={() => onRemove?.(connection.id)}
+            >
+              <UserMinus className="w-4 h-4" />
+            </Button>
+          </div>
         )}
         
         {connection.status === "pending_sent" && (
