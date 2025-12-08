@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
-  Edit2, Settings, LogOut, Lightbulb, Heart, Plus, Loader2, Bell
+  Edit2, Settings, LogOut, Lightbulb, Heart, Plus, Loader2, Bell,
+  FileText
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,7 +19,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ExperienceDialog } from "@/components/profile/ExperienceDialog";
 import { EducationDialog } from "@/components/profile/EducationDialog";
+import { PostEditDialog } from "@/components/profile/PostEditDialog";
 import { NotificationButton } from "@/components/NotificationProvider";
+import { formatDistanceToNow } from "date-fns";
 
 interface Experience {
   id: string;
@@ -34,12 +37,20 @@ interface Education {
   year: string | null;
 }
 
+interface Post {
+  id: string;
+  content: string;
+  tags: string[] | null;
+  created_at: string | null;
+}
+
 export default function Profile() {
   const { signOut } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -48,9 +59,10 @@ export default function Profile() {
       return;
     }
 
-    const [expResult, eduResult] = await Promise.all([
+    const [expResult, eduResult, postsResult] = await Promise.all([
       supabase.from('experiences').select('*').eq('profile_id', profile.id),
       supabase.from('education').select('*').eq('profile_id', profile.id),
+      supabase.from('posts').select('*').eq('profile_id', profile.id).order('created_at', { ascending: false }),
     ]);
 
     if (expResult.data) {
@@ -60,6 +72,10 @@ export default function Profile() {
         company: e.company,
         duration: e.duration,
       })));
+    }
+
+    if (postsResult.data) {
+      setPosts(postsResult.data);
     }
 
     if (eduResult.data) {
@@ -366,6 +382,55 @@ export default function Profile() {
               </CardContent>
             </Card>
           )}
+
+          {/* My Posts */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                My Posts ({posts.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {posts.length > 0 ? (
+                posts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="p-4 bg-secondary/30 rounded-lg border border-border/50"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground line-clamp-3">{post.content}</p>
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {post.tags.map((tag) => (
+                              <Badge key={tag} variant="outline" className="text-xs">
+                                #{tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {post.created_at
+                            ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+                            : ""}
+                        </p>
+                      </div>
+                      <PostEditDialog post={post} onSuccess={fetchData} />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6">
+                  <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground mb-3">No posts yet</p>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/feed')}>
+                    Create your first post
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Notifications */}
           <Card>
