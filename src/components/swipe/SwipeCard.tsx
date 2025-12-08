@@ -1,7 +1,7 @@
+import { useState } from "react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { MapPin, Briefcase, Lightbulb, Heart, GraduationCap, Eye } from "lucide-react";
+import { MapPin, Briefcase, Lightbulb, Heart, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 export interface ProfileData {
@@ -27,6 +27,7 @@ interface SwipeCardProps {
 
 export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
   const navigate = useNavigate();
+  const [isDragging, setIsDragging] = useState(false);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0.5, 1, 1, 1, 0.5]);
@@ -35,27 +36,37 @@ export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
   const likeOpacity = useTransform(x, [0, 100], [0, 1]);
   const nopeOpacity = useTransform(x, [-100, 0], [1, 0]);
 
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+
   const handleDragEnd = (_: any, info: PanInfo) => {
+    const wasDragged = Math.abs(info.offset.x) > 10;
+    
     if (info.offset.x > 100) {
       onSwipe("right");
     } else if (info.offset.x < -100) {
       onSwipe("left");
     }
+    
+    setTimeout(() => setIsDragging(false), 100);
   };
 
-  const handleViewProfile = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate(`/user/${profile.id}`);
+  const handleClick = () => {
+    if (!isDragging && isTop) {
+      navigate(`/user/${profile.id}`);
+    }
   };
 
   return (
     <motion.div
-      className="absolute w-full h-full cursor-grab active:cursor-grabbing"
+      className="absolute w-full h-full cursor-pointer"
       style={{ x, rotate, opacity }}
       drag={isTop ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      whileTap={{ scale: isTop ? 1.02 : 1 }}
+      onClick={handleClick}
     >
       <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-card bg-card">
         {/* Profile Image */}
@@ -68,16 +79,10 @@ export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/90 via-foreground/30 to-transparent" />
         </div>
 
-        {/* View Profile Button */}
-        <Button
-          variant="secondary"
-          size="sm"
-          className="absolute top-4 right-4 gap-1.5 bg-background/80 backdrop-blur-sm hover:bg-background/90 z-10"
-          onClick={handleViewProfile}
-        >
-          <Eye className="w-4 h-4" />
-          View Profile
-        </Button>
+        {/* Tap hint */}
+        <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-sm text-xs text-foreground/80">
+          Tap to view profile
+        </div>
 
         {/* Swipe Indicators */}
         <motion.div
