@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home, Users, MessageCircle, Compass, User } from "lucide-react";
+import { Home, Users, MessageCircle, Compass, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
@@ -9,7 +9,6 @@ const navItems = [
   { path: "/discover", icon: Compass, label: "Discover", badgeKey: null },
   { path: "/connections", icon: Users, label: "Connections", badgeKey: "connections" as const },
   { path: "/messages", icon: MessageCircle, label: "Messages", badgeKey: "messages" as const },
-  { path: "/profile", icon: User, label: "Profile", badgeKey: null },
 ];
 
 export function Navbar() {
@@ -21,20 +20,37 @@ export function Navbar() {
     return unreadCounts[badgeKey] || 0;
   };
 
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t md:top-0 md:bottom-auto md:border-b md:border-t-0">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-18">
-          {/* Logo - Desktop only */}
-          <Link to="/" className="hidden md:flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">F</span>
-            </div>
-            <span className="font-bold text-xl text-foreground">FounderHive</span>
-          </Link>
+  const totalNotifications = unreadCounts.connections + unreadCounts.messages;
 
-          {/* Nav Items */}
-          <div className="flex items-center justify-around w-full md:w-auto md:gap-2">
+  return (
+    <>
+      {/* Top Header with Logo and Notification */}
+      <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-lg">F</span>
+              </div>
+              <span className="font-bold text-lg text-foreground">FounderHive</span>
+            </Link>
+
+            <Link to="/profile" className="relative p-2 rounded-full hover:bg-muted transition-colors">
+              <Bell className="w-5 h-5 text-foreground" />
+              {totalNotifications > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full">
+                  {totalNotifications > 99 ? "99+" : totalNotifications}
+                </span>
+              )}
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-around h-16">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               const badgeCount = getBadgeCount(item.badgeKey);
@@ -43,7 +59,7 @@ export function Navbar() {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "relative flex flex-col md:flex-row items-center gap-0.5 md:gap-2 px-2 sm:px-3 md:px-4 py-2 rounded-xl transition-colors",
+                    "relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-colors",
                     isActive
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground"
@@ -64,25 +80,15 @@ export function Navbar() {
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] sm:text-xs md:text-sm font-medium relative z-10 truncate max-w-[48px] sm:max-w-none">
+                  <span className="text-[10px] sm:text-xs font-medium relative z-10">
                     {item.label}
                   </span>
                 </Link>
               );
             })}
           </div>
-
-          {/* Desktop CTA */}
-          <div className="hidden md:block">
-            <Link
-              to="/profile"
-              className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center overflow-hidden"
-            >
-              <User className="w-5 h-5 text-primary-foreground" />
-            </Link>
-          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }
