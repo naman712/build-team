@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
-  Edit2, Settings, LogOut, Lightbulb, Heart, Plus, Loader2
+  Edit2, Settings, LogOut, Lightbulb, Heart, Plus, Loader2, Bell
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ExperienceDialog } from "@/components/profile/ExperienceDialog";
 import { EducationDialog } from "@/components/profile/EducationDialog";
+import { NotificationButton } from "@/components/NotificationProvider";
 
 interface Experience {
   id: string;
@@ -365,6 +366,24 @@ export default function Profile() {
               </CardContent>
             </Card>
           )}
+
+          {/* Notifications */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Bell className="w-5 h-5" />
+                Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Get notified about connection requests and comments
+                </p>
+                <NotificationButton />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Settings */}
           <Card>
