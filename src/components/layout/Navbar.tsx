@@ -38,7 +38,7 @@ export function Navbar() {
               <span className="font-bold text-lg text-foreground">FounderHive</span>
             </Link>
 
-            <Link to="/profile" className="relative p-2 rounded-full hover:bg-muted transition-colors">
+            <Link to="/notifications" className="relative p-2 rounded-full hover:bg-muted transition-colors">
               <Bell className="w-5 h-5 text-foreground" />
               {totalNotifications > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full">

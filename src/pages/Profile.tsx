@@ -388,7 +388,7 @@ export default function Profile() {
           {/* Settings */}
           <Card>
             <CardContent className="p-4 space-y-2">
-              <Button variant="ghost" className="w-full justify-start gap-3">
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => navigate('/settings')}>
                 <Settings className="w-5 h-5" />
                 Settings
               </Button>
