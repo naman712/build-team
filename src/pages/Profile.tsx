@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -16,6 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { ExperienceDialog } from "@/components/profile/ExperienceDialog";
+import { EducationDialog } from "@/components/profile/EducationDialog";
 
 interface Experience {
   id: string;
@@ -39,41 +41,41 @@ export default function Profile() {
   const [education, setEducation] = useState<Education[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!profile) {
-        setLoading(false);
-        return;
-      }
-
-      const [expResult, eduResult] = await Promise.all([
-        supabase.from('experiences').select('*').eq('profile_id', profile.id),
-        supabase.from('education').select('*').eq('profile_id', profile.id),
-      ]);
-
-      if (expResult.data) {
-        setExperiences(expResult.data.map(e => ({
-          id: e.id,
-          role: e.role,
-          company: e.company,
-          duration: e.duration,
-        })));
-      }
-
-      if (eduResult.data) {
-        setEducation(eduResult.data.map(e => ({
-          id: e.id,
-          degree: e.degree,
-          school: e.school,
-          year: e.year,
-        })));
-      }
-
+  const fetchData = useCallback(async () => {
+    if (!profile) {
       setLoading(false);
-    };
+      return;
+    }
 
-    fetchData();
+    const [expResult, eduResult] = await Promise.all([
+      supabase.from('experiences').select('*').eq('profile_id', profile.id),
+      supabase.from('education').select('*').eq('profile_id', profile.id),
+    ]);
+
+    if (expResult.data) {
+      setExperiences(expResult.data.map(e => ({
+        id: e.id,
+        role: e.role,
+        company: e.company,
+        duration: e.duration,
+      })));
+    }
+
+    if (eduResult.data) {
+      setEducation(eduResult.data.map(e => ({
+        id: e.id,
+        degree: e.degree,
+        school: e.school,
+        year: e.year,
+      })));
+    }
+
+    setLoading(false);
   }, [profile]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleLogout = async () => {
     await signOut();
@@ -273,25 +275,29 @@ export default function Profile() {
             <CardContent className="space-y-4">
               {experiences.length > 0 ? (
                 experiences.map((exp) => (
-                  <div key={exp.id} className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-muted-foreground" />
+                  <ExperienceDialog key={exp.id} profileId={profile.id} experience={exp} onSuccess={fetchData}>
+                    <div className="flex items-start gap-3 cursor-pointer hover:bg-secondary/50 p-2 -m-2 rounded-lg transition-colors">
+                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{exp.role}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {exp.company}{exp.duration ? ` • ${exp.duration}` : ""}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium">{exp.role}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {exp.company}{exp.duration ? ` • ${exp.duration}` : ""}
-                      </p>
-                    </div>
-                  </div>
+                  </ExperienceDialog>
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">No experience added yet</p>
               )}
-              <Button variant="outline" size="sm" className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Experience
-              </Button>
+              <ExperienceDialog profileId={profile.id} onSuccess={fetchData}>
+                <Button variant="outline" size="sm" className="w-full">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Experience
+                </Button>
+              </ExperienceDialog>
             </CardContent>
           </Card>
 
@@ -306,21 +312,29 @@ export default function Profile() {
             <CardContent className="space-y-4">
               {education.length > 0 ? (
                 education.map((edu) => (
-                  <div key={edu.id} className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                      <GraduationCap className="w-5 h-5 text-muted-foreground" />
+                  <EducationDialog key={edu.id} profileId={profile.id} education={edu} onSuccess={fetchData}>
+                    <div className="flex items-start gap-3 cursor-pointer hover:bg-secondary/50 p-2 -m-2 rounded-lg transition-colors">
+                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                        <GraduationCap className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{edu.degree}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {edu.school}{edu.year ? ` • ${edu.year}` : ""}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium">{edu.degree}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {edu.school}{edu.year ? ` • ${edu.year}` : ""}
-                      </p>
-                    </div>
-                  </div>
+                  </EducationDialog>
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">No education added yet</p>
               )}
+              <EducationDialog profileId={profile.id} onSuccess={fetchData}>
+                <Button variant="outline" size="sm" className="w-full">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Education
+                </Button>
+              </EducationDialog>
             </CardContent>
           </Card>
 
