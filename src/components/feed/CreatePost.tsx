@@ -5,12 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useProfile } from "@/hooks/useProfile";
 
 interface CreatePostProps {
   onPost?: (content: string) => void;
 }
 
 export function CreatePost({ onPost }: CreatePostProps) {
+  const { profile } = useProfile();
   const [content, setContent] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -22,7 +24,6 @@ export function CreatePost({ onPost }: CreatePostProps) {
     onPost?.(content);
     setContent("");
     setIsExpanded(false);
-    toast.success("Post published successfully!");
   };
 
   return (
@@ -33,8 +34,8 @@ export function CreatePost({ onPost }: CreatePostProps) {
       <div className="p-4">
         <div className="flex gap-3">
           <Avatar className="w-12 h-12 ring-2 ring-primary/20">
-            <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop" />
-            <AvatarFallback>JD</AvatarFallback>
+            <AvatarImage src={profile?.photo_url || ""} />
+            <AvatarFallback>{profile?.name?.[0] || "U"}</AvatarFallback>
           </Avatar>
           
           <div className="flex-1">

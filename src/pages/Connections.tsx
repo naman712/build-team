@@ -1,35 +1,154 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users } from "lucide-react";
+import { Users, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
-import { ConnectionCard, ConnectionData } from "@/components/connections/ConnectionCard";
+import { ConnectionCard } from "@/components/connections/ConnectionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
+
+interface ConnectionWithProfile {
+  id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  requester_id: string;
+  receiver_id: string;
+  requester_profile: {
+    id: string;
+    name: string | null;
+    photo_url: string | null;
+    looking_for: string | null;
+    city: string | null;
+  };
+  receiver_profile: {
+    id: string;
+    name: string | null;
+    photo_url: string | null;
+    looking_for: string | null;
+    city: string | null;
+  };
+}
 
 export default function Connections() {
-  const [connections, setConnections] = useState<ConnectionData[]>([]);
+  const { profile } = useProfile();
+  const navigate = useNavigate();
+  const [connections, setConnections] = useState<ConnectionWithProfile[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const pendingReceived = connections.filter((c) => c.status === "pending_received");
-  const pendingSent = connections.filter((c) => c.status === "pending_sent");
-  const connected = connections.filter((c) => c.status === "connected");
+  const fetchConnections = async () => {
+    if (!profile) return;
 
-  const handleAccept = (id: string) => {
-    setConnections((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: "connected" as const } : c))
-    );
-    const connection = connections.find((c) => c.id === id);
-    toast.success(`You're now connected with ${connection?.name}!`);
+    const { data, error } = await supabase
+      .from('connections')
+      .select(`
+        id,
+        status,
+        requester_id,
+        receiver_id,
+        requester:profiles!connections_requester_id_fkey (
+          id,
+          name,
+          photo_url,
+          looking_for,
+          city
+        ),
+        receiver:profiles!connections_receiver_id_fkey (
+          id,
+          name,
+          photo_url,
+          looking_for,
+          city
+        )
+      `)
+      .or(`requester_id.eq.${profile.id},receiver_id.eq.${profile.id}`)
+      .neq('status', 'rejected');
+
+    if (error) {
+      console.error('Error fetching connections:', error);
+      setLoading(false);
+      return;
+    }
+
+    const mapped = (data || []).map((conn: any) => ({
+      id: conn.id,
+      status: conn.status,
+      requester_id: conn.requester_id,
+      receiver_id: conn.receiver_id,
+      requester_profile: conn.requester,
+      receiver_profile: conn.receiver,
+    }));
+
+    setConnections(mapped);
+    setLoading(false);
   };
 
-  const handleReject = (id: string) => {
-    setConnections((prev) => prev.filter((c) => c.id !== id));
+  useEffect(() => {
+    if (profile) {
+      fetchConnections();
+    }
+  }, [profile]);
+
+  const pendingReceived = connections.filter(
+    (c) => c.status === 'pending' && c.receiver_id === profile?.id
+  );
+  const pendingSent = connections.filter(
+    (c) => c.status === 'pending' && c.requester_id === profile?.id
+  );
+  const connected = connections.filter((c) => c.status === 'accepted');
+
+  const getOtherProfile = (conn: ConnectionWithProfile) => {
+    return conn.requester_id === profile?.id ? conn.receiver_profile : conn.requester_profile;
+  };
+
+  const handleAccept = async (connectionId: string) => {
+    const { error } = await supabase
+      .from('connections')
+      .update({ status: 'accepted' })
+      .eq('id', connectionId);
+
+    if (error) {
+      console.error('Error accepting connection:', error);
+      toast.error("Failed to accept connection");
+      return;
+    }
+
+    const connection = connections.find((c) => c.id === connectionId);
+    const otherProfile = connection ? getOtherProfile(connection) : null;
+    toast.success(`You're now connected with ${otherProfile?.name}!`);
+    fetchConnections();
+  };
+
+  const handleReject = async (connectionId: string) => {
+    const { error } = await supabase
+      .from('connections')
+      .update({ status: 'rejected' })
+      .eq('id', connectionId);
+
+    if (error) {
+      console.error('Error rejecting connection:', error);
+      toast.error("Failed to decline connection");
+      return;
+    }
+
     toast.info("Connection request declined");
+    fetchConnections();
   };
 
-  const handleMessage = (id: string) => {
-    const connection = connections.find((c) => c.id === id);
-    toast.info(`Opening chat with ${connection?.name}...`);
+  const handleMessage = (connectionId: string) => {
+    navigate(`/messages?connection=${connectionId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+        <Navbar />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
@@ -68,14 +187,26 @@ export default function Connections() {
               {pendingReceived.length === 0 ? (
                 <EmptyState message="No pending requests" />
               ) : (
-                pendingReceived.map((connection) => (
-                  <ConnectionCard
-                    key={connection.id}
-                    connection={connection}
-                    onAccept={handleAccept}
-                    onReject={handleReject}
-                  />
-                ))
+                pendingReceived.map((connection) => {
+                  const otherProfile = getOtherProfile(connection);
+                  return (
+                    <ConnectionCard
+                      key={connection.id}
+                      connection={{
+                        id: connection.id,
+                        profileId: otherProfile.id,
+                        name: otherProfile.name || "Anonymous",
+                        avatar: otherProfile.photo_url || "",
+                        role: otherProfile.looking_for || "Founder",
+                        city: otherProfile.city || "",
+                        lookingFor: otherProfile.looking_for || "",
+                        status: "pending_received",
+                      }}
+                      onAccept={handleAccept}
+                      onReject={handleReject}
+                    />
+                  );
+                })
               )}
             </TabsContent>
 
@@ -83,9 +214,24 @@ export default function Connections() {
               {pendingSent.length === 0 ? (
                 <EmptyState message="No pending requests sent" />
               ) : (
-                pendingSent.map((connection) => (
-                  <ConnectionCard key={connection.id} connection={connection} />
-                ))
+                pendingSent.map((connection) => {
+                  const otherProfile = getOtherProfile(connection);
+                  return (
+                    <ConnectionCard
+                      key={connection.id}
+                      connection={{
+                        id: connection.id,
+                        profileId: otherProfile.id,
+                        name: otherProfile.name || "Anonymous",
+                        avatar: otherProfile.photo_url || "",
+                        role: otherProfile.looking_for || "Founder",
+                        city: otherProfile.city || "",
+                        lookingFor: otherProfile.looking_for || "",
+                        status: "pending_sent",
+                      }}
+                    />
+                  );
+                })
               )}
             </TabsContent>
 
@@ -93,13 +239,25 @@ export default function Connections() {
               {connected.length === 0 ? (
                 <EmptyState message="No connections yet" />
               ) : (
-                connected.map((connection) => (
-                  <ConnectionCard
-                    key={connection.id}
-                    connection={connection}
-                    onMessage={handleMessage}
-                  />
-                ))
+                connected.map((connection) => {
+                  const otherProfile = getOtherProfile(connection);
+                  return (
+                    <ConnectionCard
+                      key={connection.id}
+                      connection={{
+                        id: connection.id,
+                        profileId: otherProfile.id,
+                        name: otherProfile.name || "Anonymous",
+                        avatar: otherProfile.photo_url || "",
+                        role: otherProfile.looking_for || "Founder",
+                        city: otherProfile.city || "",
+                        lookingFor: otherProfile.looking_for || "",
+                        status: "connected",
+                      }}
+                      onMessage={handleMessage}
+                    />
+                  );
+                })
               )}
             </TabsContent>
           </Tabs>

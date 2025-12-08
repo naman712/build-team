@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MessageCircle, Check, X, MapPin, Briefcase } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 
 export interface ConnectionData {
   id: string;
+  profileId: string;
   name: string;
   avatar: string;
   role: string;
@@ -27,6 +29,12 @@ export function ConnectionCard({
   onReject,
   onMessage,
 }: ConnectionCardProps) {
+  const navigate = useNavigate();
+
+  const handleProfileClick = () => {
+    navigate(`/user/${connection.profileId}`);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -34,14 +42,20 @@ export function ConnectionCard({
       className="bg-card rounded-2xl shadow-card border border-border/50 p-4 hover:shadow-lg transition-shadow"
     >
       <div className="flex items-start gap-4">
-        <Avatar className="w-16 h-16 ring-2 ring-primary/20">
+        <Avatar 
+          className="w-16 h-16 ring-2 ring-primary/20 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={handleProfileClick}
+        >
           <AvatarImage src={connection.avatar} alt={connection.name} />
           <AvatarFallback>{connection.name[0]}</AvatarFallback>
         </Avatar>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <div>
+            <div 
+              className="cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={handleProfileClick}
+            >
               <h3 className="font-semibold text-foreground truncate">
                 {connection.name}
               </h3>
@@ -49,10 +63,12 @@ export function ConnectionCard({
                 <Briefcase className="w-3 h-3" />
                 {connection.role}
               </p>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {connection.city}
-              </p>
+              {connection.city && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {connection.city}
+                </p>
+              )}
             </div>
             
             <Badge
@@ -73,9 +89,11 @@ export function ConnectionCard({
             </Badge>
           </div>
           
-          <p className="text-sm text-muted-foreground mt-2">
-            Looking for: <span className="text-foreground">{connection.lookingFor}</span>
-          </p>
+          {connection.lookingFor && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Looking for: <span className="text-foreground">{connection.lookingFor}</span>
+            </p>
+          )}
         </div>
       </div>
 
