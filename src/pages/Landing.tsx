@@ -63,10 +63,10 @@ export default function Landing() {
           
           <div className="flex items-center gap-4">
             <Button variant="ghost" asChild>
-              <Link to="/feed">Login</Link>
+              <Link to="/auth">Login</Link>
             </Button>
             <Button variant="hero" asChild>
-              <Link to="/discover">Get Started</Link>
+              <Link to="/auth">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -98,7 +98,7 @@ export default function Landing() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button variant="hero" size="xl" asChild>
-                <Link to="/discover">
+                <Link to="/auth">
                   Start Matching
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
@@ -276,7 +276,7 @@ export default function Landing() {
               className="bg-background text-foreground hover:bg-background/90"
               asChild
             >
-              <Link to="/discover">
+              <Link to="/auth">
                 Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
