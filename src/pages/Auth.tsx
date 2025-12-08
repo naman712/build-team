@@ -106,10 +106,30 @@ export default function Auth() {
         return;
       }
 
-      // Wait a moment for the trigger to create the profile, then update it
-      setTimeout(async () => {
+      // Wait for the trigger to create the profile, then update it with retries
+      const updateProfileWithRetry = async (retries = 3) => {
         const { data: { user: newUser } } = await supabase.auth.getUser();
-        if (newUser) {
+        if (!newUser) {
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return updateProfileWithRetry(retries - 1);
+          }
+          return;
+        }
+
+        // Check if profile exists
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', newUser.id)
+          .maybeSingle();
+
+        if (!existingProfile && retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return updateProfileWithRetry(retries - 1);
+        }
+
+        if (existingProfile) {
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ name, phone })
@@ -119,9 +139,11 @@ export default function Auth() {
             console.error('Error updating profile:', updateError);
           }
         }
-        setIsLoading(false);
-        toast.success('Account created successfully!');
-      }, 1000);
+      };
+
+      await updateProfileWithRetry();
+      setIsLoading(false);
+      toast.success('Account created successfully!');
     } catch (err) {
       toast.error('An unexpected error occurred');
       setIsLoading(false);
