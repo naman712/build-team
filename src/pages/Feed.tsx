@@ -89,16 +89,15 @@ export default function Feed() {
   useEffect(() => {
     fetchPosts();
 
-    // Real-time subscription for new posts
+    // Real-time subscription for posts, likes, and comments
     const channel = supabase
-      .channel('posts-realtime')
+      .channel('feed-realtime')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'posts' },
         async (payload) => {
           const newPost = payload.new as any;
           
-          // Fetch the profile for the new post
           const { data: profileData } = await supabase
             .from('profiles')
             .select('id, name, photo_url, looking_for')
@@ -118,7 +117,6 @@ export default function Feed() {
               comments_count: 0,
               user_liked: false,
             };
-            
             setPosts(prev => [formattedPost, ...prev]);
           }
         }
@@ -128,6 +126,62 @@ export default function Feed() {
         { event: 'DELETE', schema: 'public', table: 'posts' },
         (payload) => {
           setPosts(prev => prev.filter(p => p.id !== payload.old.id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'post_likes' },
+        (payload) => {
+          const like = payload.new as any;
+          setPosts(prev => prev.map(p => 
+            p.id === like.post_id 
+              ? { 
+                  ...p, 
+                  likes_count: p.likes_count + 1,
+                  user_liked: profile?.id === like.profile_id ? true : p.user_liked
+                }
+              : p
+          ));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'post_likes' },
+        (payload) => {
+          const like = payload.old as any;
+          setPosts(prev => prev.map(p => 
+            p.id === like.post_id 
+              ? { 
+                  ...p, 
+                  likes_count: Math.max(0, p.likes_count - 1),
+                  user_liked: profile?.id === like.profile_id ? false : p.user_liked
+                }
+              : p
+          ));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'post_comments' },
+        (payload) => {
+          const comment = payload.new as any;
+          setPosts(prev => prev.map(p => 
+            p.id === comment.post_id 
+              ? { ...p, comments_count: p.comments_count + 1 }
+              : p
+          ));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'post_comments' },
+        (payload) => {
+          const comment = payload.old as any;
+          setPosts(prev => prev.map(p => 
+            p.id === comment.post_id 
+              ? { ...p, comments_count: Math.max(0, p.comments_count - 1) }
+              : p
+          ));
         }
       )
       .subscribe();
