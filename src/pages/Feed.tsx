@@ -89,7 +89,6 @@ export default function Feed() {
 
   const handleRefresh = useCallback(async () => {
     await fetchPosts();
-    toast.success("Feed refreshed!");
   }, [fetchPosts]);
 
   const { containerRef, pullDistance, isRefreshing, threshold } = usePullToRefresh({
