@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
-  Edit2, Settings, LogOut, Lightbulb, Heart, Plus
+  Edit2, Settings, LogOut, Lightbulb, Heart, Plus, Loader2
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,41 +15,116 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-const userProfile = {
-  name: "John Doe",
-  age: 29,
-  avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
-  city: "San Francisco",
-  country: "USA",
-  email: "john@example.com",
-  phone: "+1 (555) 123-4567",
-  lookingFor: "Technical Co-founder",
-  aboutMe: "Passionate entrepreneur with 5+ years in product management. Previously led product at a Series B startup. Looking to build the next big thing in AI/ML space.",
-  myIdea: "Building an AI-powered platform that helps remote teams collaborate more effectively by understanding work patterns and suggesting optimal meeting times and focus blocks.",
-  interests: ["AI/ML", "Remote Work", "SaaS", "Productivity", "B2B"],
-  experience: [
-    { role: "Product Manager", company: "TechCorp", duration: "2021-Present" },
-    { role: "Associate PM", company: "StartupXYZ", duration: "2019-2021" },
-  ],
-  education: [
-    { degree: "MBA", school: "Stanford GSB", year: "2019" },
-    { degree: "BS Computer Science", school: "UC Berkeley", year: "2017" },
-  ],
-  links: ["linkedin.com/in/johndoe", "johndoe.com"],
-  profileCompletion: 85,
-};
+interface Experience {
+  id: string;
+  role: string;
+  company: string;
+  duration: string | null;
+}
+
+interface Education {
+  id: string;
+  degree: string;
+  school: string;
+  year: string | null;
+}
 
 export default function Profile() {
-  const [isEditing, setIsEditing] = useState(false);
   const { signOut } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [education, setEducation] = useState<Education[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!profile) {
+        setLoading(false);
+        return;
+      }
+
+      const [expResult, eduResult] = await Promise.all([
+        supabase.from('experiences').select('*').eq('profile_id', profile.id),
+        supabase.from('education').select('*').eq('profile_id', profile.id),
+      ]);
+
+      if (expResult.data) {
+        setExperiences(expResult.data.map(e => ({
+          id: e.id,
+          role: e.role,
+          company: e.company,
+          duration: e.duration,
+        })));
+      }
+
+      if (eduResult.data) {
+        setEducation(eduResult.data.map(e => ({
+          id: e.id,
+          degree: e.degree,
+          school: e.school,
+          year: e.year,
+        })));
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [profile]);
 
   const handleLogout = async () => {
     await signOut();
     toast.success("Logged out successfully");
     navigate("/");
   };
+
+  const calculateProfileCompletion = () => {
+    if (!profile) return 0;
+    
+    const fields = [
+      profile.photo_url,
+      profile.name,
+      profile.age,
+      profile.phone,
+      profile.email,
+      profile.city,
+      profile.country,
+      profile.looking_for,
+      profile.about_me,
+      profile.my_idea,
+      profile.interests && profile.interests.length > 0,
+    ];
+    
+    const completed = fields.filter(Boolean).length;
+    return Math.round((completed / fields.length) * 100);
+  };
+
+  if (profileLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+        <Navbar />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+        <Navbar />
+        <div className="flex items-center justify-center py-20">
+          <p className="text-muted-foreground">Please log in to view your profile</p>
+        </div>
+      </div>
+    );
+  }
+
+  const profileCompletion = calculateProfileCompletion();
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
@@ -78,8 +154,8 @@ export default function Profile() {
               <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16">
                 <div className="relative">
                   <Avatar className="w-32 h-32 ring-4 ring-card">
-                    <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
-                    <AvatarFallback>{userProfile.name[0]}</AvatarFallback>
+                    <AvatarImage src={profile.photo_url || ""} alt={profile.name || ""} />
+                    <AvatarFallback>{profile.name?.[0] || "U"}</AvatarFallback>
                   </Avatar>
                   <Button
                     variant="default"
@@ -91,14 +167,18 @@ export default function Profile() {
                 </div>
                 
                 <div className="flex-1 text-center sm:text-left">
-                  <h1 className="text-2xl font-bold">{userProfile.name}, {userProfile.age}</h1>
+                  <h1 className="text-2xl font-bold">
+                    {profile.name || "Your Name"}{profile.age ? `, ${profile.age}` : ""}
+                  </h1>
                   <p className="text-muted-foreground flex items-center justify-center sm:justify-start gap-1">
                     <MapPin className="w-4 h-4" />
-                    {userProfile.city}, {userProfile.country}
+                    {profile.city && profile.country 
+                      ? `${profile.city}, ${profile.country}` 
+                      : "Location not set"}
                   </p>
                 </div>
                 
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2" onClick={() => navigate('/onboarding')}>
                   <Edit2 className="w-4 h-4" />
                   Edit Profile
                 </Button>
@@ -108,72 +188,79 @@ export default function Profile() {
               <div className="mt-6 p-4 bg-secondary/50 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Profile Completion</span>
-                  <span className="text-sm text-primary font-semibold">{userProfile.profileCompletion}%</span>
+                  <span className="text-sm text-primary font-semibold">{profileCompletion}%</span>
                 </div>
-                <Progress value={userProfile.profileCompletion} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Complete your profile to unlock all features
-                </p>
+                <Progress value={profileCompletion} className="h-2" />
+                {profileCompletion < 100 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Complete your profile to unlock all features
+                  </p>
+                )}
               </div>
             </div>
           </motion.div>
 
           {/* Looking For */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Heart className="w-5 h-5 text-primary" />
-                Looking For
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant="secondary" className="bg-primary/10 text-primary px-4 py-2">
-                {userProfile.lookingFor}
-              </Badge>
-            </CardContent>
-          </Card>
+          {profile.looking_for && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-primary" />
+                  Looking For
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Badge variant="secondary" className="bg-primary/10 text-primary px-4 py-2">
+                  {profile.looking_for}
+                </Badge>
+              </CardContent>
+            </Card>
+          )}
 
           {/* About Me */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">About Me</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground leading-relaxed">{userProfile.aboutMe}</p>
-            </CardContent>
-          </Card>
+          {profile.about_me && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">About Me</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{profile.about_me}</p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* My Idea */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Lightbulb className="w-5 h-5 text-accent" />
-                My Idea
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground leading-relaxed">{userProfile.myIdea}</p>
-            </CardContent>
-          </Card>
+          {profile.my_idea && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-accent" />
+                  My Idea
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{profile.my_idea}</p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Interests */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Interests</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {userProfile.interests.map((interest) => (
-                  <Badge key={interest} variant="secondary">
-                    {interest}
-                  </Badge>
-                ))}
-                <Button variant="outline" size="sm" className="h-6 px-2">
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {profile.interests && profile.interests.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Interests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {profile.interests.map((interest) => (
+                    <Badge key={interest} variant="secondary">
+                      {interest}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Experience */}
           <Card>
@@ -184,17 +271,23 @@ export default function Profile() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {userProfile.experience.map((exp, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                    <Briefcase className="w-5 h-5 text-muted-foreground" />
+              {experiences.length > 0 ? (
+                experiences.map((exp) => (
+                  <div key={exp.id} className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                      <Briefcase className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">{exp.role}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {exp.company}{exp.duration ? ` • ${exp.duration}` : ""}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium">{exp.role}</h4>
-                    <p className="text-sm text-muted-foreground">{exp.company} • {exp.duration}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No experience added yet</p>
+              )}
               <Button variant="outline" size="sm" className="w-full">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Experience
@@ -211,45 +304,53 @@ export default function Profile() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {userProfile.education.map((edu, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                    <GraduationCap className="w-5 h-5 text-muted-foreground" />
+              {education.length > 0 ? (
+                education.map((edu) => (
+                  <div key={edu.id} className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                      <GraduationCap className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">{edu.degree}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {edu.school}{edu.year ? ` • ${edu.year}` : ""}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium">{edu.degree}</h4>
-                    <p className="text-sm text-muted-foreground">{edu.school} • {edu.year}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No education added yet</p>
+              )}
             </CardContent>
           </Card>
 
           {/* Links */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <LinkIcon className="w-5 h-5" />
-                Links
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {userProfile.links.map((link, index) => (
-                  <a
-                    key={index}
-                    href={`https://${link}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-primary hover:underline"
-                  >
-                    <LinkIcon className="w-4 h-4" />
-                    {link}
-                  </a>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {profile.links && profile.links.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <LinkIcon className="w-5 h-5" />
+                  Links
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {profile.links.map((link, index) => (
+                    <a
+                      key={index}
+                      href={link.startsWith('http') ? link : `https://${link}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-primary hover:underline"
+                    >
+                      <LinkIcon className="w-4 h-4" />
+                      {link}
+                    </a>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Settings */}
           <Card>

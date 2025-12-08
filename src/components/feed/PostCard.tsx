@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,6 +10,7 @@ import { cn } from "@/lib/utils";
 export interface PostData {
   id: string;
   author: {
+    id: string;
     name: string;
     avatar: string;
     role: string;
@@ -30,6 +32,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onLike, onComment }: PostCardProps) {
+  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked || false);
@@ -40,6 +43,10 @@ export function PostCard({ post, onLike, onComment }: PostCardProps) {
     onLike?.(post.id);
   };
 
+  const handleAuthorClick = () => {
+    navigate(`/user/${post.author.id}`);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -48,7 +55,10 @@ export function PostCard({ post, onLike, onComment }: PostCardProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-3">
+        <div 
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={handleAuthorClick}
+        >
           <Avatar className="w-12 h-12 ring-2 ring-primary/20">
             <AvatarImage src={post.author.avatar} alt={post.author.name} />
             <AvatarFallback>{post.author.name[0]}</AvatarFallback>
