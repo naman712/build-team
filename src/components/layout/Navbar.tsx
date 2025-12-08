@@ -24,10 +24,13 @@ export function Navbar() {
 
   return (
     <>
-      {/* Top Header with Logo and Notification */}
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14">
+            <Link to="/profile" className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center hover:opacity-90 transition-opacity">
+              <User className="w-5 h-5 text-primary-foreground" />
+            </Link>
+
             <Link to="/" className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-lg">F</span>
@@ -35,19 +38,14 @@ export function Navbar() {
               <span className="font-bold text-lg text-foreground">FounderHive</span>
             </Link>
 
-            <div className="flex items-center gap-1">
-              <Link to="/profile" className="relative p-2 rounded-full hover:bg-muted transition-colors">
-                <Bell className="w-5 h-5 text-foreground" />
-                {totalNotifications > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full">
-                    {totalNotifications > 99 ? "99+" : totalNotifications}
-                  </span>
-                )}
-              </Link>
-              <Link to="/profile" className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center hover:opacity-90 transition-opacity">
-                <User className="w-5 h-5 text-primary-foreground" />
-              </Link>
-            </div>
+            <Link to="/profile" className="relative p-2 rounded-full hover:bg-muted transition-colors">
+              <Bell className="w-5 h-5 text-foreground" />
+              {totalNotifications > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full">
+                  {totalNotifications > 99 ? "99+" : totalNotifications}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
       </header>
