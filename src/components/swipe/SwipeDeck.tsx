@@ -6,6 +6,7 @@ import { SwipeCard, ProfileData } from "./SwipeCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { playSoundEffect } from "@/hooks/useSoundEffects";
 
 export function SwipeDeck() {
   const { user } = useAuth();
@@ -141,6 +142,7 @@ export function SwipeDeck() {
 
     if (direction === "right") {
       // Send connection request
+      playSoundEffect('swipeRight');
       try {
         const { error } = await supabase.from("connections").insert({
           requester_id: myProfileId,
@@ -150,6 +152,7 @@ export function SwipeDeck() {
 
         if (error) throw error;
 
+        playSoundEffect('connectionRequest');
         toast.success(`Connection request sent to ${swipedProfile.name}!`, {
           description: "They'll be notified about your interest.",
         });
@@ -160,6 +163,8 @@ export function SwipeDeck() {
         setProfiles((prev) => [...prev, swipedProfile]);
         setLastSwiped(null);
       }
+    } else {
+      playSoundEffect('swipeLeft');
     }
   };
 

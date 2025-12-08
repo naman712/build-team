@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
+import { playSoundEffect } from "@/hooks/useSoundEffects";
 
 interface ConnectionWithProfile {
   id: string;
@@ -153,6 +154,7 @@ export default function Connections() {
       return;
     }
 
+    playSoundEffect('success');
     const connection = connections.find((c) => c.id === connectionId);
     const otherProfile = connection ? getOtherProfile(connection) : null;
     toast.success(`You're now connected with ${otherProfile?.name}!`);
@@ -171,6 +173,7 @@ export default function Connections() {
       return;
     }
 
+    playSoundEffect('click');
     toast.info("Connection request declined");
     fetchConnections();
   };
