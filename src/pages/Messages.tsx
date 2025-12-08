@@ -415,7 +415,7 @@ export default function Messages() {
       <Navbar />
       
       {/* Main content area - fixed positioning to account for both navbars */}
-      <main className="fixed top-14 bottom-160 md:bottom-0 left-0 right-0 container mx-auto px-4 py-2">
+      <main className="fixed top-14 bottom-16 md:bottom-0 left-0 right-0 container mx-auto px-4 py-2">
         <div className="max-w-4xl mx-auto h-full flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
           {/* Chat List */}
           <div className={cn(
