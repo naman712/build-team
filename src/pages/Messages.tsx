@@ -49,8 +49,11 @@ export default function Messages() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -171,11 +174,11 @@ export default function Messages() {
   }, [profile]);
 
   useEffect(() => {
-    if (selectedChat) {
+    if (selectedChat && profile) {
       fetchMessages(selectedChat.connectionId);
 
       // Subscribe to new messages
-      const channel = supabase
+      const messagesChannel = supabase
         .channel(`messages-${selectedChat.connectionId}`)
         .on(
           'postgres_changes',
@@ -191,11 +194,59 @@ export default function Messages() {
         )
         .subscribe();
 
+      // Subscribe to typing presence
+      const typingChannel = supabase
+        .channel(`typing-${selectedChat.connectionId}`)
+        .on('presence', { event: 'sync' }, () => {
+          const state = typingChannel.presenceState();
+          // Check if the other user is typing
+          const otherTyping = Object.values(state).some((presences: any) =>
+            presences.some((p: any) => p.isTyping && p.profileId !== profile.id)
+          );
+          setIsOtherTyping(otherTyping);
+        })
+        .subscribe();
+
+      typingChannelRef.current = typingChannel;
+
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(messagesChannel);
+        supabase.removeChannel(typingChannel);
+        typingChannelRef.current = null;
       };
     }
-  }, [selectedChat]);
+  }, [selectedChat, profile]);
+
+  // Handle typing indicator
+  const handleTyping = () => {
+    if (!selectedChat || !profile || !typingChannelRef.current) return;
+
+    // Track typing state
+    typingChannelRef.current.track({
+      profileId: profile.id,
+      isTyping: true,
+    });
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      if (typingChannelRef.current) {
+        typingChannelRef.current.track({
+          profileId: profile.id,
+          isTyping: false,
+        });
+      }
+    }, 2000);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    handleTyping();
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -517,6 +568,36 @@ export default function Messages() {
                     </div>
                   </motion.div>
                 ))}
+                
+                {/* Typing Indicator */}
+                {isOtherTyping && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex justify-start"
+                  >
+                    <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-2">
+                      <div className="flex items-center gap-1">
+                        <motion.span
+                          animate={{ opacity: [0.4, 1, 0.4] }}
+                          transition={{ duration: 1.2, repeat: Infinity }}
+                          className="w-2 h-2 bg-muted-foreground rounded-full"
+                        />
+                        <motion.span
+                          animate={{ opacity: [0.4, 1, 0.4] }}
+                          transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
+                          className="w-2 h-2 bg-muted-foreground rounded-full"
+                        />
+                        <motion.span
+                          animate={{ opacity: [0.4, 1, 0.4] }}
+                          transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
+                          className="w-2 h-2 bg-muted-foreground rounded-full"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+                
                 <div ref={messagesEndRef} />
               </div>
 
@@ -574,7 +655,7 @@ export default function Messages() {
 
                   <Input
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={handleInputChange}
                     placeholder="Type a message..."
                     className="flex-1"
                     onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
