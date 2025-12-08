@@ -1,16 +1,19 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
   Edit2, Settings, LogOut, Lightbulb, Heart, Plus
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
+import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 const userProfile = {
   name: "John Doe",
@@ -38,6 +41,14 @@ const userProfile = {
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("Logged out successfully");
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
@@ -248,7 +259,11 @@ export default function Profile() {
                 Settings
               </Button>
               <Separator />
-              <Button variant="ghost" className="w-full justify-start gap-3 text-destructive hover:text-destructive">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start gap-3 text-destructive hover:text-destructive"
+                onClick={handleLogout}
+              >
                 <LogOut className="w-5 h-5" />
                 Log Out
               </Button>
