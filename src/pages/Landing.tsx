@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Users, MessageCircle, Lightbulb, Rocket, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 const features = [
   {
@@ -49,6 +50,9 @@ const testimonials = [
 ];
 
 export default function Landing() {
+  const { user } = useAuth();
+  const authLink = user ? "/discover" : "/auth";
+
   return (
     <div className="min-h-screen bg-gradient-hero overflow-hidden">
       {/* Navigation */}
@@ -63,10 +67,10 @@ export default function Landing() {
           
           <div className="flex items-center gap-4">
             <Button variant="ghost" asChild>
-              <Link to="/auth">Login</Link>
+              <Link to={authLink}>{user ? "Dashboard" : "Login"}</Link>
             </Button>
             <Button variant="hero" asChild>
-              <Link to="/auth">Get Started</Link>
+              <Link to={authLink}>{user ? "Start Matching" : "Get Started"}</Link>
             </Button>
           </div>
         </div>
@@ -98,7 +102,7 @@ export default function Landing() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button variant="hero" size="xl" asChild>
-                <Link to="/auth">
+                <Link to={authLink}>
                   Start Matching
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
@@ -276,7 +280,7 @@ export default function Landing() {
               className="bg-background text-foreground hover:bg-background/90"
               asChild
             >
-              <Link to="/auth">
+              <Link to={authLink}>
                 Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
