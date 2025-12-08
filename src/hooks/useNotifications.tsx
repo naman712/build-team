@@ -123,6 +123,58 @@ export function useNotifications() {
       )
       .subscribe();
 
+    // Subscribe to likes on user's posts
+    const likesChannel = supabase
+      .channel('like-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'post_likes',
+        },
+        async (payload) => {
+          console.log("New like received:", payload);
+          const newLike = payload.new as any;
+          
+          // Check if this like is on one of the user's posts
+          const { data: post } = await supabase
+            .from('posts')
+            .select('id, profile_id, content')
+            .eq('id', newLike.post_id)
+            .maybeSingle();
+
+          // Only notify if the like is on the user's own post
+          // and the like is not from the user themselves
+          if (post?.profile_id === profile.id && newLike.profile_id !== profile.id) {
+            // Fetch liker's profile
+            const { data: likerProfile } = await supabase
+              .from('profiles')
+              .select('name, photo_url')
+              .eq('id', newLike.profile_id)
+              .maybeSingle();
+
+            const likerName = likerProfile?.name || "Someone";
+
+            // Show toast notification
+            toast.info(`${likerName} liked your post`, {
+              action: {
+                label: "View",
+                onClick: () => window.location.href = "/feed",
+              },
+            });
+
+            // Show browser notification
+            showBrowserNotification(
+              "New Like",
+              `${likerName} liked your post!`,
+              likerProfile?.photo_url
+            );
+          }
+        }
+      )
+      .subscribe();
+
     // Subscribe to connection accepted notifications
     const acceptedChannel = supabase
       .channel('connection-accepted-notifications')
@@ -172,6 +224,7 @@ export function useNotifications() {
     return () => {
       supabase.removeChannel(connectionsChannel);
       supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(likesChannel);
       supabase.removeChannel(acceptedChannel);
     };
   }, [profile?.id]);
