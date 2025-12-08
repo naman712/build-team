@@ -415,7 +415,7 @@ export default function Messages() {
       <Navbar />
       
       {/* Main content area - fixed positioning to account for both navbars */}
-      <main className="fixed top-14 bottom-16 md:bottom-0 left-0 right-0 container mx-auto px-4 py-2">
+      <main className="fixed top-14 bottom-16 md:bottom-0 left-0 right-0 px-4 py-2 overflow-hidden">
         <div className="max-w-4xl mx-auto h-full flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
           {/* Chat List */}
           <div className={cn(
@@ -466,7 +466,7 @@ export default function Messages() {
 
           {/* Chat Window */}
           {selectedChat ? (
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               {/* Chat Header */}
               <div className="p-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-3">
