@@ -40,16 +40,28 @@ export function SwipeDeck() {
 
       setMyProfileId(myProfile.id);
 
-      // Get profiles I've already swiped on (sent connection requests)
-      const { data: existingConnections, error: connError } = await supabase
+      // Get all connections involving the current user (sent or received)
+      const { data: sentConnections, error: sentError } = await supabase
         .from("connections")
         .select("receiver_id")
         .eq("requester_id", myProfile.id);
 
-      if (connError) throw connError;
+      if (sentError) throw sentError;
 
-      const swipedIds = existingConnections?.map(c => c.receiver_id) || [];
-      swipedIds.push(myProfile.id); // Exclude self
+      const { data: receivedConnections, error: receivedError } = await supabase
+        .from("connections")
+        .select("requester_id")
+        .eq("receiver_id", myProfile.id);
+
+      if (receivedError) throw receivedError;
+
+      // Exclude profiles I've swiped on OR who have swiped on me (accepted connections)
+      const excludeIds = new Set<string>();
+      excludeIds.add(myProfile.id); // Exclude self
+      sentConnections?.forEach(c => excludeIds.add(c.receiver_id));
+      receivedConnections?.forEach(c => excludeIds.add(c.requester_id));
+      
+      const swipedIds = Array.from(excludeIds);
 
       // Fetch completed profiles excluding already swiped ones
       const { data: profilesData, error: fetchError } = await supabase
