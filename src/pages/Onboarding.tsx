@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Camera, User, MapPin, Lightbulb, Heart, Sparkles,
@@ -35,6 +35,8 @@ const steps = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
   const { user } = useAuth();
   const { profile, loading: profileLoading, isProfileComplete } = useProfile();
   
@@ -75,11 +77,12 @@ export default function Onboarding() {
     }
   }, [profile]);
 
+  // Only redirect if profile is complete AND not in edit mode
   useEffect(() => {
-    if (isProfileComplete) {
+    if (isProfileComplete && !isEditMode) {
       navigate('/discover');
     }
-  }, [isProfileComplete, navigate]);
+  }, [isProfileComplete, isEditMode, navigate]);
 
   if (profileLoading) {
     return (
@@ -228,8 +231,13 @@ export default function Onboarding() {
         console.error('Update error:', error);
         toast.error('Failed to save profile. Please try again.');
       } else {
-        toast.success('Profile completed! Welcome to FounderHive!');
-        navigate('/discover');
+        if (isEditMode) {
+          toast.success('Profile updated successfully!');
+          navigate('/profile');
+        } else {
+          toast.success('Profile completed! Welcome to FounderHive!');
+          navigate('/discover');
+        }
       }
     } catch (err) {
       console.error('Error:', err);

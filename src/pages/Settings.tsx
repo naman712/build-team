@@ -26,7 +26,7 @@ export default function Settings() {
     {
       icon: User,
       label: "Edit Profile",
-      onClick: () => navigate("/onboarding"),
+      onClick: () => navigate("/onboarding?edit=true"),
     },
     {
       icon: Bell,
