@@ -1,17 +1,20 @@
 import { useCallback, useRef } from 'react';
+import { triggerHaptic } from './useHapticFeedback';
 
 type SoundType = 'like' | 'sendMessage' | 'receiveMessage' | 'notification' | 'connectionRequest' | 'swipeRight' | 'swipeLeft' | 'success' | 'click';
 
-const soundConfigs: Record<SoundType, { frequency: number; duration: number; type: OscillatorType; volume: number; secondFreq?: number }> = {
-  like: { frequency: 800, duration: 0.1, type: 'sine', volume: 0.3 },
-  sendMessage: { frequency: 600, duration: 0.08, type: 'sine', volume: 0.2 },
-  receiveMessage: { frequency: 900, duration: 0.15, type: 'sine', volume: 0.25 },
-  notification: { frequency: 700, duration: 0.2, type: 'triangle', volume: 0.3 },
-  connectionRequest: { frequency: 523, duration: 0.15, type: 'sine', volume: 0.3, secondFreq: 659 },
-  swipeRight: { frequency: 600, duration: 0.12, type: 'sine', volume: 0.25, secondFreq: 800 },
-  swipeLeft: { frequency: 400, duration: 0.1, type: 'sine', volume: 0.15 },
-  success: { frequency: 523, duration: 0.1, type: 'sine', volume: 0.25, secondFreq: 784 },
-  click: { frequency: 1000, duration: 0.05, type: 'sine', volume: 0.1 },
+type HapticType = 'light' | 'medium' | 'heavy' | 'success' | 'error' | 'selection';
+
+const soundConfigs: Record<SoundType, { frequency: number; duration: number; type: OscillatorType; volume: number; secondFreq?: number; haptic?: HapticType }> = {
+  like: { frequency: 800, duration: 0.1, type: 'sine', volume: 0.3, haptic: 'light' },
+  sendMessage: { frequency: 600, duration: 0.08, type: 'sine', volume: 0.2, haptic: 'light' },
+  receiveMessage: { frequency: 900, duration: 0.15, type: 'sine', volume: 0.25, haptic: 'medium' },
+  notification: { frequency: 700, duration: 0.2, type: 'triangle', volume: 0.3, haptic: 'medium' },
+  connectionRequest: { frequency: 523, duration: 0.15, type: 'sine', volume: 0.3, secondFreq: 659, haptic: 'success' },
+  swipeRight: { frequency: 600, duration: 0.12, type: 'sine', volume: 0.25, secondFreq: 800, haptic: 'medium' },
+  swipeLeft: { frequency: 400, duration: 0.1, type: 'sine', volume: 0.15, haptic: 'light' },
+  success: { frequency: 523, duration: 0.1, type: 'sine', volume: 0.25, secondFreq: 784, haptic: 'success' },
+  click: { frequency: 1000, duration: 0.05, type: 'sine', volume: 0.1, haptic: 'selection' },
 };
 
 export const useSoundEffects = () => {
@@ -28,6 +31,11 @@ export const useSoundEffects = () => {
     try {
       const audioContext = getAudioContext();
       const config = soundConfigs[type];
+      
+      // Trigger haptic feedback
+      if (config.haptic) {
+        triggerHaptic(config.haptic);
+      }
       
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
@@ -78,6 +86,12 @@ export const playSoundEffect = (type: SoundType) => {
     }
     
     const config = soundConfigs[type];
+    
+    // Trigger haptic feedback
+    if (config.haptic) {
+      triggerHaptic(config.haptic);
+    }
+    
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
