@@ -35,7 +35,7 @@ export function Navbar() {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "relative flex flex-col md:flex-row items-center gap-1 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-colors",
+                    "relative flex flex-col md:flex-row items-center gap-0.5 md:gap-2 px-2 sm:px-3 md:px-4 py-2 rounded-xl transition-colors",
                     isActive
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground"
@@ -49,7 +49,7 @@ export function Navbar() {
                     />
                   )}
                   <item.icon className="w-5 h-5 relative z-10" />
-                  <span className="text-xs md:text-sm font-medium relative z-10">
+                  <span className="text-[10px] sm:text-xs md:text-sm font-medium relative z-10 truncate max-w-[48px] sm:max-w-none">
                     {item.label}
                   </span>
                 </Link>
