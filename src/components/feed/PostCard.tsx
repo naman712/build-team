@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Send, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Send, Loader2, Reply, ChevronDown, ChevronUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,11 +34,13 @@ interface Comment {
   id: string;
   content: string;
   created_at: string;
+  parent_comment_id: string | null;
   profile: {
     id: string;
     name: string | null;
     photo_url: string | null;
   };
+  replies?: Comment[];
 }
 
 interface PostCardProps {
@@ -58,6 +60,8 @@ export function PostCard({ post, onLike }: PostCardProps) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
 
   const fetchComments = async () => {
     setLoadingComments(true);
@@ -67,6 +71,7 @@ export function PostCard({ post, onLike }: PostCardProps) {
         id,
         content,
         created_at,
+        parent_comment_id,
         profiles!post_comments_profile_id_fkey (
           id,
           name,
@@ -79,12 +84,33 @@ export function PostCard({ post, onLike }: PostCardProps) {
     if (error) {
       console.error('Error fetching comments:', error);
     } else {
-      setComments((data || []).map((c: any) => ({
+      // Organize comments into threads
+      const allComments = (data || []).map((c: any) => ({
         id: c.id,
         content: c.content,
         created_at: c.created_at,
+        parent_comment_id: c.parent_comment_id,
         profile: c.profiles,
-      })));
+        replies: [] as Comment[],
+      }));
+
+      // Create a map for quick lookup
+      const commentMap = new Map<string, Comment>();
+      allComments.forEach(c => commentMap.set(c.id, c));
+
+      // Build thread structure
+      const topLevelComments: Comment[] = [];
+      allComments.forEach(c => {
+        if (c.parent_comment_id && commentMap.has(c.parent_comment_id)) {
+          const parent = commentMap.get(c.parent_comment_id)!;
+          if (!parent.replies) parent.replies = [];
+          parent.replies.push(c);
+        } else {
+          topLevelComments.push(c);
+        }
+      });
+
+      setComments(topLevelComments);
     }
     setLoadingComments(false);
   };
@@ -112,7 +138,7 @@ export function PostCard({ post, onLike }: PostCardProps) {
     setShowComments(!showComments);
   };
 
-  const handleSubmitComment = async () => {
+  const handleSubmitComment = async (parentCommentId?: string) => {
     if (!newComment.trim()) return;
     
     if (!profile) {
@@ -126,33 +152,79 @@ export function PostCard({ post, onLike }: PostCardProps) {
     }
 
     setSubmittingComment(true);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('post_comments')
       .insert({
         post_id: post.id,
         profile_id: profile.id,
         content: newComment.trim(),
-      });
+        parent_comment_id: parentCommentId || null,
+      })
+      .select('id')
+      .single();
 
     if (error) {
       console.error('Error posting comment:', error);
       toast.error("Failed to post comment");
     } else {
-      setNewComment("");
-      // Add the new comment to local state immediately
-      setComments(prev => [...prev, {
-        id: crypto.randomUUID(),
+      const newCommentObj: Comment = {
+        id: data.id,
         content: newComment.trim(),
         created_at: new Date().toISOString(),
+        parent_comment_id: parentCommentId || null,
         profile: {
           id: profile.id,
           name: profile.name,
           photo_url: profile.photo_url,
         },
-      }]);
-      toast.success("Comment posted!");
+        replies: [],
+      };
+
+      if (parentCommentId) {
+        // Add reply to the parent comment
+        setComments(prev => addReplyToComment(prev, parentCommentId, newCommentObj));
+        // Expand replies for this parent
+        setExpandedReplies(prev => new Set([...prev, parentCommentId]));
+      } else {
+        // Add as top-level comment
+        setComments(prev => [...prev, newCommentObj]);
+      }
+      
+      setNewComment("");
+      setReplyingTo(null);
+      toast.success(parentCommentId ? "Reply posted!" : "Comment posted!");
     }
     setSubmittingComment(false);
+  };
+
+  const addReplyToComment = (comments: Comment[], parentId: string, reply: Comment): Comment[] => {
+    return comments.map(comment => {
+      if (comment.id === parentId) {
+        return {
+          ...comment,
+          replies: [...(comment.replies || []), reply],
+        };
+      }
+      if (comment.replies && comment.replies.length > 0) {
+        return {
+          ...comment,
+          replies: addReplyToComment(comment.replies, parentId, reply),
+        };
+      }
+      return comment;
+    });
+  };
+
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(commentId)) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
   };
 
   const formatCommentTime = (timestamp: string) => {
@@ -290,32 +362,48 @@ export function PostCard({ post, onLike }: PostCardProps) {
             <div className="p-3 sm:p-4 space-y-3">
               {/* Comment Input */}
               {profile && (
-                <div className="flex gap-2 sm:gap-3">
-                  <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarImage src={profile.photo_url || ""} />
-                    <AvatarFallback>{profile.name?.[0] || "U"}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 flex gap-2">
-                    <Input
-                      placeholder={isProfileComplete ? "Write a comment..." : "Complete profile to comment"}
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSubmitComment()}
-                      disabled={!isProfileComplete || submittingComment}
-                      className="flex-1 h-8 sm:h-9 text-sm"
-                    />
-                    <Button
-                      size="icon"
-                      className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
-                      onClick={handleSubmitComment}
-                      disabled={!newComment.trim() || !isProfileComplete || submittingComment}
-                    >
-                      {submittingComment ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </Button>
+                <div className="space-y-2">
+                  {replyingTo && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/30 px-3 py-1.5 rounded-lg">
+                      <Reply className="w-3 h-3" />
+                      <span>Replying to <span className="font-medium text-foreground">{replyingTo.profile.name}</span></span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-5 h-5 ml-auto"
+                        onClick={() => setReplyingTo(null)}
+                      >
+                        <span className="text-lg leading-none">&times;</span>
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex gap-2 sm:gap-3">
+                    <Avatar className="w-8 h-8 flex-shrink-0">
+                      <AvatarImage src={profile.photo_url || ""} />
+                      <AvatarFallback>{profile.name?.[0] || "U"}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 flex gap-2">
+                      <Input
+                        placeholder={isProfileComplete ? (replyingTo ? "Write a reply..." : "Write a comment...") : "Complete profile to comment"}
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSubmitComment(replyingTo?.id)}
+                        disabled={!isProfileComplete || submittingComment}
+                        className="flex-1 h-8 sm:h-9 text-sm"
+                      />
+                      <Button
+                        size="icon"
+                        className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
+                        onClick={() => handleSubmitComment(replyingTo?.id)}
+                        disabled={!newComment.trim() || !isProfileComplete || submittingComment}
+                      >
+                        {submittingComment ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -330,33 +418,18 @@ export function PostCard({ post, onLike }: PostCardProps) {
                   No comments yet. Be the first!
                 </p>
               ) : (
-                <div className="space-y-3 max-h-64 overflow-y-auto">
+                <div className="space-y-3 max-h-80 overflow-y-auto">
                   {comments.map((comment) => (
-                    <div key={comment.id} className="flex gap-2 sm:gap-3">
-                      <Avatar 
-                        className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 cursor-pointer"
-                        onClick={() => navigate(`/user/${comment.profile.id}`)}
-                      >
-                        <AvatarImage src={comment.profile.photo_url || ""} />
-                        <AvatarFallback>{comment.profile.name?.[0] || "U"}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="bg-secondary/50 rounded-xl px-3 py-2">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span 
-                              className="font-medium text-xs sm:text-sm cursor-pointer hover:underline"
-                              onClick={() => navigate(`/user/${comment.profile.id}`)}
-                            >
-                              {comment.profile.name || "Anonymous"}
-                            </span>
-                            <span className="text-[10px] sm:text-xs text-muted-foreground">
-                              {formatCommentTime(comment.created_at)}
-                            </span>
-                          </div>
-                          <p className="text-xs sm:text-sm text-foreground">{comment.content}</p>
-                        </div>
-                      </div>
-                    </div>
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      onReply={(c) => setReplyingTo(c)}
+                      expandedReplies={expandedReplies}
+                      toggleReplies={toggleReplies}
+                      formatTime={formatCommentTime}
+                      navigate={navigate}
+                      isProfileComplete={isProfileComplete}
+                    />
                   ))}
                 </div>
               )}
@@ -365,5 +438,122 @@ export function PostCard({ post, onLike }: PostCardProps) {
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+// Recursive Comment Item Component
+interface CommentItemProps {
+  comment: Comment;
+  onReply: (comment: Comment) => void;
+  expandedReplies: Set<string>;
+  toggleReplies: (id: string) => void;
+  formatTime: (timestamp: string) => string;
+  navigate: (path: string) => void;
+  isProfileComplete: boolean;
+  depth?: number;
+}
+
+function CommentItem({ 
+  comment, 
+  onReply, 
+  expandedReplies, 
+  toggleReplies, 
+  formatTime, 
+  navigate,
+  isProfileComplete,
+  depth = 0 
+}: CommentItemProps) {
+  const hasReplies = comment.replies && comment.replies.length > 0;
+  const isExpanded = expandedReplies.has(comment.id);
+  const maxDepth = 3; // Limit nesting depth
+
+  return (
+    <div className={cn("space-y-2", depth > 0 && "ml-6 sm:ml-8 border-l-2 border-border/30 pl-3")}>
+      <div className="flex gap-2 sm:gap-3">
+        <Avatar 
+          className={cn(
+            "flex-shrink-0 cursor-pointer",
+            depth === 0 ? "w-7 h-7 sm:w-8 sm:h-8" : "w-6 h-6"
+          )}
+          onClick={() => navigate(`/user/${comment.profile.id}`)}
+        >
+          <AvatarImage src={comment.profile.photo_url || ""} />
+          <AvatarFallback className="text-xs">{comment.profile.name?.[0] || "U"}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="bg-secondary/50 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span 
+                className="font-medium text-xs sm:text-sm cursor-pointer hover:underline"
+                onClick={() => navigate(`/user/${comment.profile.id}`)}
+              >
+                {comment.profile.name || "Anonymous"}
+              </span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">
+                {formatTime(comment.created_at)}
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-foreground">{comment.content}</p>
+          </div>
+          
+          {/* Reply button and show replies toggle */}
+          <div className="flex items-center gap-3 mt-1 px-1">
+            {isProfileComplete && depth < maxDepth && (
+              <button
+                onClick={() => onReply(comment)}
+                className="text-[10px] sm:text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              >
+                <Reply className="w-3 h-3" />
+                Reply
+              </button>
+            )}
+            {hasReplies && (
+              <button
+                onClick={() => toggleReplies(comment.id)}
+                className="text-[10px] sm:text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="w-3 h-3" />
+                    Hide {comment.replies!.length} {comment.replies!.length === 1 ? 'reply' : 'replies'}
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3 h-3" />
+                    Show {comment.replies!.length} {comment.replies!.length === 1 ? 'reply' : 'replies'}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Nested Replies */}
+      <AnimatePresence>
+        {hasReplies && isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="space-y-2"
+          >
+            {comment.replies!.map((reply) => (
+              <CommentItem
+                key={reply.id}
+                comment={reply}
+                onReply={onReply}
+                expandedReplies={expandedReplies}
+                toggleReplies={toggleReplies}
+                formatTime={formatTime}
+                navigate={navigate}
+                isProfileComplete={isProfileComplete}
+                depth={depth + 1}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
