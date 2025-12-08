@@ -162,7 +162,7 @@ export default function UserProfile() {
   const showContactInfo = connectionStatus === 'connected' || isOwnProfile;
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+    <div className="min-h-screen bg-background pb-20 pt-16">
       <Navbar />
       
       <main className="container mx-auto px-4 py-6">
