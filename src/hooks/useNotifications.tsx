@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./useProfile";
 import { toast } from "sonner";
+import { playSoundEffect } from "./useSoundEffects";
 
 export function useNotifications() {
   const { profile } = useProfile();
@@ -176,6 +177,9 @@ export function useNotifications() {
   }, [profile?.id]);
 
   const showBrowserNotification = (title: string, body: string, icon?: string | null) => {
+    // Play notification sound
+    playSoundEffect('notification');
+    
     if (!("Notification" in window)) {
       console.log("This browser does not support notifications");
       return;

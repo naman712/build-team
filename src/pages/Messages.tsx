@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { playSoundEffect } from "@/hooks/useSoundEffects";
 import {
   Tooltip,
   TooltipContent,
@@ -189,7 +190,12 @@ export default function Messages() {
             filter: `connection_id=eq.${selectedChat.connectionId}`,
           },
           (payload) => {
-            setMessages(prev => [...prev, payload.new as Message]);
+            const newMessage = payload.new as Message;
+            setMessages(prev => [...prev, newMessage]);
+            // Play receive sound only for messages from others
+            if (newMessage.sender_id !== profile.id) {
+              playSoundEffect('receiveMessage');
+            }
           }
         )
         .subscribe();
@@ -333,6 +339,7 @@ export default function Messages() {
       return;
     }
 
+    playSoundEffect('sendMessage');
     setNewMessage("");
     removeFile();
   };
