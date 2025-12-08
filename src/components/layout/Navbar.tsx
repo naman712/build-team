@@ -72,15 +72,6 @@ export function Navbar() {
             })}
           </div>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:block">
-            <Link
-              to="/profile"
-              className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center overflow-hidden"
-            >
-              <User className="w-5 h-5 text-primary-foreground" />
-            </Link>
-          </div>
         </div>
       </div>
     </nav>
