@@ -2,17 +2,24 @@ import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Home, Users, MessageCircle, Compass, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
 const navItems = [
-  { path: "/feed", icon: Home, label: "Feed" },
-  { path: "/discover", icon: Compass, label: "Discover" },
-  { path: "/connections", icon: Users, label: "Connections" },
-  { path: "/messages", icon: MessageCircle, label: "Messages" },
-  { path: "/profile", icon: User, label: "Profile" },
+  { path: "/feed", icon: Home, label: "Feed", badgeKey: null },
+  { path: "/discover", icon: Compass, label: "Discover", badgeKey: null },
+  { path: "/connections", icon: Users, label: "Connections", badgeKey: "connections" as const },
+  { path: "/messages", icon: MessageCircle, label: "Messages", badgeKey: "messages" as const },
+  { path: "/profile", icon: User, label: "Profile", badgeKey: null },
 ];
 
 export function Navbar() {
   const location = useLocation();
+  const unreadCounts = useUnreadCounts();
+
+  const getBadgeCount = (badgeKey: "connections" | "messages" | null) => {
+    if (!badgeKey) return 0;
+    return unreadCounts[badgeKey] || 0;
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t md:top-0 md:bottom-auto md:border-b md:border-t-0">
@@ -30,6 +37,7 @@ export function Navbar() {
           <div className="flex items-center justify-around w-full md:w-auto md:gap-2">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
+              const badgeCount = getBadgeCount(item.badgeKey);
               return (
                 <Link
                   key={item.path}
@@ -48,7 +56,14 @@ export function Navbar() {
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
-                  <item.icon className="w-5 h-5 relative z-10" />
+                  <div className="relative">
+                    <item.icon className="w-5 h-5 relative z-10" />
+                    {badgeCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full z-20">
+                        {badgeCount > 99 ? "99+" : badgeCount}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] sm:text-xs md:text-sm font-medium relative z-10 truncate max-w-[48px] sm:max-w-none">
                     {item.label}
                   </span>
