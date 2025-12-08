@@ -16,6 +16,8 @@ import Connections from "./pages/Connections";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
+import Notifications from "./pages/Notifications";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
               <Route path="/messages" element={<ProtectedRoute><RequireCompleteProfile><Messages /></RequireCompleteProfile></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/user/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </NotificationProvider>
