@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home, Users, MessageCircle, Compass, Bell } from "lucide-react";
+import { Home, Users, MessageCircle, Compass, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
@@ -35,14 +35,19 @@ export function Navbar() {
               <span className="font-bold text-lg text-foreground">FounderHive</span>
             </Link>
 
-            <Link to="/profile" className="relative p-2 rounded-full hover:bg-muted transition-colors">
-              <Bell className="w-5 h-5 text-foreground" />
-              {totalNotifications > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full">
-                  {totalNotifications > 99 ? "99+" : totalNotifications}
-                </span>
-              )}
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link to="/profile" className="relative p-2 rounded-full hover:bg-muted transition-colors">
+                <Bell className="w-5 h-5 text-foreground" />
+                {totalNotifications > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full">
+                    {totalNotifications > 99 ? "99+" : totalNotifications}
+                  </span>
+                )}
+              </Link>
+              <Link to="/profile" className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center hover:opacity-90 transition-opacity">
+                <User className="w-5 h-5 text-primary-foreground" />
+              </Link>
+            </div>
           </div>
         </div>
       </header>
