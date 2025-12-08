@@ -1,6 +1,8 @@
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { MapPin, Briefcase, Lightbulb, Heart, GraduationCap } from "lucide-react";
+import { MapPin, Briefcase, Lightbulb, Heart, GraduationCap, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export interface ProfileData {
   id: string;
@@ -24,6 +26,7 @@ interface SwipeCardProps {
 }
 
 export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
+  const navigate = useNavigate();
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0.5, 1, 1, 1, 0.5]);
@@ -38,6 +41,11 @@ export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
     } else if (info.offset.x < -100) {
       onSwipe("left");
     }
+  };
+
+  const handleViewProfile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/user/${profile.id}`);
   };
 
   return (
@@ -60,15 +68,26 @@ export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/90 via-foreground/30 to-transparent" />
         </div>
 
+        {/* View Profile Button */}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="absolute top-4 right-4 gap-1.5 bg-background/80 backdrop-blur-sm hover:bg-background/90 z-10"
+          onClick={handleViewProfile}
+        >
+          <Eye className="w-4 h-4" />
+          View Profile
+        </Button>
+
         {/* Swipe Indicators */}
         <motion.div
-          className="absolute top-4 sm:top-8 right-4 sm:right-8 px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-success text-success-foreground font-bold text-lg sm:text-2xl rotate-12 border-2 sm:border-4 border-success-foreground"
+          className="absolute top-4 sm:top-8 left-4 sm:left-8 px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-success text-success-foreground font-bold text-lg sm:text-2xl rotate-12 border-2 sm:border-4 border-success-foreground"
           style={{ opacity: likeOpacity }}
         >
           CONNECT
         </motion.div>
         <motion.div
-          className="absolute top-4 sm:top-8 left-4 sm:left-8 px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-lg sm:text-2xl -rotate-12 border-2 sm:border-4 border-destructive-foreground"
+          className="absolute top-14 sm:top-8 left-4 sm:left-8 px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-lg sm:text-2xl -rotate-12 border-2 sm:border-4 border-destructive-foreground"
           style={{ opacity: nopeOpacity }}
         >
           SKIP
