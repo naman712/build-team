@@ -97,6 +97,10 @@ export default function Connections() {
     }
   }, [profile]);
 
+  const getOtherProfile = (conn: ConnectionWithProfile) => {
+    return conn.requester_id === profile?.id ? conn.receiver_profile : conn.requester_profile;
+  };
+
   // Get all unique interests from connections for filter chips
   const allInterests = useMemo(() => {
     const interests = new Set<string>();
@@ -136,10 +140,6 @@ export default function Connections() {
   const connected = filterConnections(
     connections.filter((c) => c.status === 'accepted')
   );
-
-  const getOtherProfile = (conn: ConnectionWithProfile) => {
-    return conn.requester_id === profile?.id ? conn.receiver_profile : conn.requester_profile;
-  };
 
   const handleAccept = async (connectionId: string) => {
     const { error } = await supabase
