@@ -135,6 +135,25 @@ export default function Connections() {
     fetchConnections();
   };
 
+  const handleRemove = async (connectionId: string) => {
+    const connection = connections.find((c) => c.id === connectionId);
+    const otherProfile = connection ? getOtherProfile(connection) : null;
+
+    const { error } = await supabase
+      .from('connections')
+      .delete()
+      .eq('id', connectionId);
+
+    if (error) {
+      console.error('Error removing connection:', error);
+      toast.error("Failed to remove connection");
+      return;
+    }
+
+    toast.success(`Removed connection with ${otherProfile?.name}`);
+    fetchConnections();
+  };
+
   const handleMessage = (connectionId: string) => {
     navigate(`/messages?connection=${connectionId}`);
   };
@@ -258,6 +277,7 @@ export default function Connections() {
                         status: "connected",
                       }}
                       onMessage={handleMessage}
+                      onRemove={handleRemove}
                     />
                   );
                 })
