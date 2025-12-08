@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Home, Users, MessageCircle, Compass, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
+import { useProfile } from "@/hooks/useProfile";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { path: "/feed", icon: Home, label: "Feed", badgeKey: null },
@@ -14,6 +16,7 @@ const navItems = [
 export function Navbar() {
   const location = useLocation();
   const unreadCounts = useUnreadCounts();
+  const { profile } = useProfile();
 
   const getBadgeCount = (badgeKey: "connections" | "messages" | null) => {
     if (!badgeKey) return 0;
@@ -27,8 +30,13 @@ export function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14">
-            <Link to="/profile" className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center hover:opacity-90 transition-opacity">
-              <User className="w-5 h-5 text-primary-foreground" />
+            <Link to="/profile" className="hover:opacity-90 transition-opacity">
+              <Avatar className="w-9 h-9 ring-2 ring-primary/30">
+                <AvatarImage src={profile?.photo_url || ""} alt={profile?.name || "Profile"} />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-sm font-semibold">
+                  {profile?.name?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
+                </AvatarFallback>
+              </Avatar>
             </Link>
 
             <Link to="/" className="flex items-center gap-2">
