@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
+import { playSoundEffect } from "@/hooks/useSoundEffects";
 
 export interface PostData {
   id: string;
@@ -95,6 +96,9 @@ export function PostCard({ post, onLike }: PostCardProps) {
   }, [showComments, post.id]);
 
   const handleLike = () => {
+    if (!isLiked) {
+      playSoundEffect('like');
+    }
     setIsLiked(!isLiked);
     setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
     onLike?.(post.id);
