@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, RefreshCw } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { CreatePost } from "@/components/feed/CreatePost";
 import { PostCard } from "@/components/feed/PostCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 interface PostWithAuthor {
   id: string;
@@ -31,7 +32,7 @@ export default function Feed() {
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     const { data: postsData, error } = await supabase
       .from('posts')
       .select(`
@@ -84,7 +85,17 @@ export default function Feed() {
 
     setPosts(postsWithCounts);
     setLoading(false);
-  };
+  }, [profile]);
+
+  const handleRefresh = useCallback(async () => {
+    await fetchPosts();
+    toast.success("Feed refreshed!");
+  }, [fetchPosts]);
+
+  const { containerRef, pullDistance, isRefreshing, threshold } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+  });
 
   useEffect(() => {
     fetchPosts();
@@ -286,10 +297,40 @@ export default function Feed() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0 pt-16 md:pt-20">
+    <div 
+      ref={containerRef}
+      className="min-h-screen bg-background pb-20 md:pb-0 pt-16 md:pt-20"
+    >
       <Navbar />
       
-      <main className="container mx-auto px-4 py-4 sm:py-6">
+      {/* Pull to refresh indicator */}
+      <div 
+        className="fixed left-0 right-0 flex justify-center z-40 pointer-events-none md:hidden"
+        style={{ 
+          top: 64,
+          transform: `translateY(${Math.min(pullDistance, threshold)}px)`,
+          opacity: pullDistance > 0 ? 1 : 0,
+          transition: pullDistance === 0 ? 'all 0.3s ease' : 'none',
+        }}
+      >
+        <div className="bg-primary text-primary-foreground rounded-full p-2 shadow-lg">
+          <RefreshCw 
+            className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}
+            style={{
+              transform: `rotate(${(pullDistance / threshold) * 180}deg)`,
+              transition: isRefreshing ? 'none' : 'transform 0.1s',
+            }}
+          />
+        </div>
+      </div>
+      
+      <main 
+        className="container mx-auto px-4 py-4 sm:py-6"
+        style={{
+          transform: `translateY(${pullDistance}px)`,
+          transition: pullDistance === 0 ? 'transform 0.3s ease' : 'none',
+        }}
+      >
         <div className="max-w-xl mx-auto space-y-4 sm:space-y-6">
           {isProfileComplete && <CreatePost onPost={handleNewPost} />}
           
