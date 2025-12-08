@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
+import { ShareDialog } from "./ShareDialog";
 
 export interface PostData {
   id: string;
@@ -62,6 +63,7 @@ export function PostCard({ post, onLike }: PostCardProps) {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   const fetchComments = async () => {
     setLoadingComments(true);
@@ -335,7 +337,12 @@ export function PostCard({ post, onLike }: PostCardProps) {
             <span className="font-medium text-xs sm:text-sm">{post.comments}</span>
           </Button>
           
-          <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 px-2 sm:px-3">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-1 sm:gap-2 px-2 sm:px-3"
+            onClick={() => setShowShareDialog(true)}
+          >
             <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
@@ -437,6 +444,13 @@ export function PostCard({ post, onLike }: PostCardProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ShareDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        postId={post.id}
+        postContent={post.content}
+      />
     </motion.div>
   );
 }
