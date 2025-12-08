@@ -276,7 +276,7 @@ export default function Feed() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+      <div className="min-h-screen bg-background pb-20 md:pb-0 pt-16 md:pt-20">
         <Navbar />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -286,11 +286,11 @@ export default function Feed() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-20">
+    <div className="min-h-screen bg-background pb-20 md:pb-0 pt-16 md:pt-20">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6">
-        <div className="max-w-xl mx-auto space-y-6">
+      <main className="container mx-auto px-4 py-4 sm:py-6">
+        <div className="max-w-xl mx-auto space-y-4 sm:space-y-6">
           {isProfileComplete && <CreatePost onPost={handleNewPost} />}
           
           {posts.length === 0 ? (
