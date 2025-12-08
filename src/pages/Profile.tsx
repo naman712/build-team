@@ -15,11 +15,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ExperienceDialog } from "@/components/profile/ExperienceDialog";
 import { EducationDialog } from "@/components/profile/EducationDialog";
 import { PostEditDialog } from "@/components/profile/PostEditDialog";
+import { PostDetailDialog } from "@/components/profile/PostDetailDialog";
 import { NotificationButton } from "@/components/NotificationProvider";
 import { formatDistanceToNow } from "date-fns";
 
@@ -42,6 +44,7 @@ interface Post {
   content: string;
   tags: string[] | null;
   created_at: string | null;
+  image_url?: string | null;
 }
 
 export default function Profile() {
@@ -52,6 +55,8 @@ export default function Profile() {
   const [education, setEducation] = useState<Education[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [activeTab, setActiveTab] = useState("profile");
 
   const fetchData = useCallback(async () => {
     if (!profile) {
@@ -196,11 +201,6 @@ export default function Profile() {
                       : "Location not set"}
                   </p>
                 </div>
-                
-                <Button variant="outline" className="gap-2" onClick={() => navigate('/onboarding?edit=true')}>
-                  <Edit2 className="w-4 h-4" />
-                  Edit Profile
-                </Button>
               </div>
 
               {/* Profile Completion */}
@@ -216,221 +216,249 @@ export default function Profile() {
                   </p>
                 )}
               </div>
+
+              {/* Tabs for Edit Profile and My Posts */}
+              <div className="mt-6">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="profile" className="gap-2">
+                      <Edit2 className="w-4 h-4" />
+                      Edit Profile
+                    </TabsTrigger>
+                    <TabsTrigger value="posts" className="gap-2">
+                      <FileText className="w-4 h-4" />
+                      My Posts ({posts.length})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </div>
           </motion.div>
 
-          {/* Looking For */}
-          {profile.looking_for && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-primary" />
-                  Looking For
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Badge variant="secondary" className="bg-primary/10 text-primary px-4 py-2">
-                  {profile.looking_for}
-                </Badge>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* About Me */}
-          {profile.about_me && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">About Me</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">{profile.about_me}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* My Idea */}
-          {profile.my_idea && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Lightbulb className="w-5 h-5 text-accent" />
-                  My Idea
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">{profile.my_idea}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Interests */}
-          {profile.interests && profile.interests.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Interests</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {profile.interests.map((interest) => (
-                    <Badge key={interest} variant="secondary">
-                      {interest}
+          {activeTab === "profile" ? (
+            <>
+              {/* Looking For */}
+              {profile.looking_for && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Heart className="w-5 h-5 text-primary" />
+                      Looking For
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary px-4 py-2">
+                      {profile.looking_for}
                     </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </CardContent>
+                </Card>
+              )}
 
-          {/* Experience */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Briefcase className="w-5 h-5" />
-                Experience
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {experiences.length > 0 ? (
-                experiences.map((exp) => (
-                  <ExperienceDialog key={exp.id} profileId={profile.id} experience={exp} onSuccess={fetchData}>
-                    <div className="flex items-start gap-3 cursor-pointer hover:bg-secondary/50 p-2 -m-2 rounded-lg transition-colors">
-                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                        <Briefcase className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{exp.role}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {exp.company}{exp.duration ? ` • ${exp.duration}` : ""}
-                        </p>
-                      </div>
+              {/* About Me */}
+              {profile.about_me && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">About Me</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">{profile.about_me}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* My Idea */}
+              {profile.my_idea && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Lightbulb className="w-5 h-5 text-accent" />
+                      My Idea
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">{profile.my_idea}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Interests */}
+              {profile.interests && profile.interests.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Interests</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.interests.map((interest) => (
+                        <Badge key={interest} variant="secondary">
+                          {interest}
+                        </Badge>
+                      ))}
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Experience */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Briefcase className="w-5 h-5" />
+                    Experience
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {experiences.length > 0 ? (
+                    experiences.map((exp) => (
+                      <ExperienceDialog key={exp.id} profileId={profile.id} experience={exp} onSuccess={fetchData}>
+                        <div className="flex items-start gap-3 cursor-pointer hover:bg-secondary/50 p-2 -m-2 rounded-lg transition-colors">
+                          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                            <Briefcase className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{exp.role}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {exp.company}{exp.duration ? ` • ${exp.duration}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </ExperienceDialog>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No experience added yet</p>
+                  )}
+                  <ExperienceDialog profileId={profile.id} onSuccess={fetchData}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Experience
+                    </Button>
                   </ExperienceDialog>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No experience added yet</p>
-              )}
-              <ExperienceDialog profileId={profile.id} onSuccess={fetchData}>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Experience
-                </Button>
-              </ExperienceDialog>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          {/* Education */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <GraduationCap className="w-5 h-5" />
-                Education
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {education.length > 0 ? (
-                education.map((edu) => (
-                  <EducationDialog key={edu.id} profileId={profile.id} education={edu} onSuccess={fetchData}>
-                    <div className="flex items-start gap-3 cursor-pointer hover:bg-secondary/50 p-2 -m-2 rounded-lg transition-colors">
-                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                        <GraduationCap className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{edu.degree}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {edu.school}{edu.year ? ` • ${edu.year}` : ""}
-                        </p>
-                      </div>
-                    </div>
+              {/* Education */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5" />
+                    Education
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {education.length > 0 ? (
+                    education.map((edu) => (
+                      <EducationDialog key={edu.id} profileId={profile.id} education={edu} onSuccess={fetchData}>
+                        <div className="flex items-start gap-3 cursor-pointer hover:bg-secondary/50 p-2 -m-2 rounded-lg transition-colors">
+                          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                            <GraduationCap className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{edu.degree}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {edu.school}{edu.year ? ` • ${edu.year}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </EducationDialog>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No education added yet</p>
+                  )}
+                  <EducationDialog profileId={profile.id} onSuccess={fetchData}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Education
+                    </Button>
                   </EducationDialog>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No education added yet</p>
+                </CardContent>
+              </Card>
+
+              {/* Links */}
+              {profile.links && profile.links.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <LinkIcon className="w-5 h-5" />
+                      Links
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {profile.links.map((link, index) => (
+                        <a
+                          key={index}
+                          href={link.startsWith('http') ? link : `https://${link}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-primary hover:underline"
+                        >
+                          <LinkIcon className="w-4 h-4" />
+                          {link}
+                        </a>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
-              <EducationDialog profileId={profile.id} onSuccess={fetchData}>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Education
-                </Button>
-              </EducationDialog>
-            </CardContent>
-          </Card>
 
-          {/* Links */}
-          {profile.links && profile.links.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <LinkIcon className="w-5 h-5" />
-                  Links
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {profile.links.map((link, index) => (
-                    <a
-                      key={index}
-                      href={link.startsWith('http') ? link : `https://${link}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-primary hover:underline"
-                    >
-                      <LinkIcon className="w-4 h-4" />
-                      {link}
-                    </a>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* My Posts */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                My Posts ({posts.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              {/* Edit Profile Button */}
+              <Button 
+                className="w-full gap-2" 
+                onClick={() => navigate('/onboarding?edit=true')}
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit Profile
+              </Button>
+            </>
+          ) : (
+            <>
+              {/* My Posts Tab Content */}
               {posts.length > 0 ? (
                 posts.map((post) => (
-                  <div
+                  <Card
                     key={post.id}
-                    className="p-4 bg-secondary/30 rounded-lg border border-border/50"
+                    className="cursor-pointer hover:bg-secondary/30 transition-colors"
+                    onClick={() => setSelectedPost(post)}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground line-clamp-3">{post.content}</p>
-                        {post.tags && post.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {post.tags.map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                #{tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {post.created_at
-                            ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
-                            : ""}
-                        </p>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-foreground line-clamp-3">{post.content}</p>
+                          {post.tags && post.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {post.tags.map((tag) => (
+                                <Badge key={tag} variant="outline" className="text-xs">
+                                  #{tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {post.created_at
+                              ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+                              : ""}
+                          </p>
+                        </div>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <PostEditDialog post={post} onSuccess={fetchData} />
+                        </div>
                       </div>
-                      <PostEditDialog post={post} onSuccess={fetchData} />
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 ))
               ) : (
-                <div className="text-center py-6">
-                  <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-3">No posts yet</p>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/feed')}>
-                    Create your first post
-                  </Button>
-                </div>
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground mb-4">No posts yet</p>
+                    <Button onClick={() => navigate('/feed')}>
+                      Create your first post
+                    </Button>
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-          </Card>
+            </>
+          )}
 
           {/* Notifications */}
           <Card>
@@ -470,6 +498,16 @@ export default function Profile() {
           </Card>
         </div>
       </main>
+
+      {/* Post Detail Dialog */}
+      {selectedPost && (
+        <PostDetailDialog
+          post={selectedPost}
+          open={!!selectedPost}
+          onOpenChange={(open) => !open && setSelectedPost(null)}
+          onPostUpdated={fetchData}
+        />
+      )}
     </div>
   );
 }
