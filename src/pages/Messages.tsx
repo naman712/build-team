@@ -370,6 +370,31 @@ export default function Messages() {
     return url.split('/').pop() || 'attachment';
   };
 
+  const renderMessageContent = (content: string, isOwnMessage: boolean) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = content.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "underline break-all",
+              isOwnMessage ? "text-primary-foreground hover:text-primary-foreground/80" : "text-primary hover:text-primary/80"
+            )}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-24 md:pb-0 md:pt-20">
@@ -543,7 +568,11 @@ export default function Messages() {
                           )}
                         </div>
                       )}
-                      {message.content && <p className="text-sm">{message.content}</p>}
+                      {message.content && (
+                        <p className="text-sm whitespace-pre-wrap">
+                          {renderMessageContent(message.content, message.sender_id === profile?.id)}
+                        </p>
+                      )}
                       <p className={cn(
                         "text-[10px]",
                         message.sender_id === profile?.id

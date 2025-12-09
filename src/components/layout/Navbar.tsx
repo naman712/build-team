@@ -45,7 +45,7 @@ export function Navbar() {
           </Link>
 
           {/* Center: Navigation Items */}
-          <nav className="flex items-center gap-1 sm:gap-2">
+          <nav className="flex items-center gap-3 sm:gap-6">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               const badgeCount = getBadgeCount(item.badgeKey);
