@@ -28,27 +28,6 @@ const features = [
   },
 ];
 
-const testimonials = [
-  {
-    name: "Sarah Chen",
-    role: "CEO @ TechFlow",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-    quote: "Found my technical co-founder in just 2 weeks. FounderHive changed everything.",
-  },
-  {
-    name: "Marcus Johnson",
-    role: "CTO @ DataSync",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-    quote: "The quality of founders here is incredible. No noise, just serious builders.",
-  },
-  {
-    name: "Priya Sharma",
-    role: "Founder @ FinLeap",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
-    quote: "Finally, a platform that understands what founders actually need.",
-  },
-];
-
 export default function Landing() {
   const { user } = useAuth();
   const authLink = user ? "/discover" : "/auth";
@@ -62,7 +41,7 @@ export default function Landing() {
             <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-xl">F</span>
             </div>
-            <span className="font-bold text-xl text-foreground">FounderHive</span>
+            <span className="font-bold text-xl text-foreground">FounderNow</span>
           </Link>
           
           <div className="flex items-center gap-4">
@@ -97,7 +76,7 @@ export default function Landing() {
             
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
               Connect with ambitious founders, share ideas, and build the next big thing together. 
-              Swipe to discover your ideal startup partner.
+              Discover your ideal startup partner.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -195,7 +174,7 @@ export default function Landing() {
           <div className="space-y-8">
             {[
               { step: "01", title: "Complete Your Profile", desc: "Share your skills, experience, and startup ideas" },
-              { step: "02", title: "Swipe & Discover", desc: "Browse through curated founder profiles" },
+              { step: "02", title: "Browse & Discover", desc: "Browse through curated founder profiles" },
               { step: "03", title: "Connect & Build", desc: "Match, chat, and start building together" },
             ].map((item, index) => (
               <motion.div
@@ -218,47 +197,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 px-4 bg-gradient-warm">
-        <div className="container mx-auto max-w-6xl">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-bold mb-4">Loved by Founders</h2>
-            <p className="text-xl text-muted-foreground">Join thousands of entrepreneurs finding their perfect match</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={testimonial.name}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-card rounded-2xl p-6 shadow-card border border-border/50"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20"
-                  />
-                  <div>
-                    <h4 className="font-semibold">{testimonial.name}</h4>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </div>
-                <p className="text-muted-foreground italic">"{testimonial.quote}"</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
@@ -272,7 +210,7 @@ export default function Landing() {
               Ready to Find Your Co-Founder?
             </h2>
             <p className="text-xl text-primary-foreground/80 mb-8">
-              Join FounderHive today and start building your dream startup
+              Join FounderNow today and start building your dream startup
             </p>
             <Button
               variant="secondary"
@@ -297,10 +235,10 @@ export default function Landing() {
               <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold">F</span>
               </div>
-              <span className="font-semibold text-foreground">FounderHive</span>
+              <span className="font-semibold text-foreground">FounderNow</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 FounderHive. All rights reserved.
+              © 2024 FounderNow. All rights reserved.
             </p>
           </div>
         </div>

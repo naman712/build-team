@@ -21,32 +21,30 @@ export interface ProfileData {
 
 interface SwipeCardProps {
   profile: ProfileData;
-  onSwipe: (direction: "left" | "right") => void;
+  onSwipe: (direction: "up" | "connect") => void;
   isTop: boolean;
 }
 
 export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
   const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-15, 15]);
-  const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0.5, 1, 1, 1, 0.5]);
+  const y = useMotionValue(0);
+  const rotate = useTransform(y, [-200, 200], [5, -5]);
+  const opacity = useTransform(y, [-200, -100, 0, 100, 200], [0.5, 1, 1, 1, 0.5]);
   
-  // Swipe indicators
-  const likeOpacity = useTransform(x, [0, 100], [0, 1]);
-  const nopeOpacity = useTransform(x, [-100, 0], [1, 0]);
+  // Swipe up indicator (skip)
+  const skipOpacity = useTransform(y, [-100, 0], [1, 0]);
 
   const handleDragStart = () => {
     setIsDragging(true);
   };
 
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const wasDragged = Math.abs(info.offset.x) > 10;
+    const wasDragged = Math.abs(info.offset.y) > 10;
     
-    if (info.offset.x > 100) {
-      onSwipe("right");
-    } else if (info.offset.x < -100) {
-      onSwipe("left");
+    // Swipe up to skip
+    if (info.offset.y < -100) {
+      onSwipe("up");
     }
     
     setTimeout(() => setIsDragging(false), 100);
@@ -61,9 +59,10 @@ export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
   return (
     <motion.div
       className="absolute w-full h-full cursor-pointer"
-      style={{ x, rotate, opacity }}
-      drag={isTop ? "x" : false}
-      dragConstraints={{ left: 0, right: 0 }}
+      style={{ y, rotate, opacity }}
+      drag={isTop ? "y" : false}
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={0.7}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onClick={handleClick}
@@ -84,16 +83,10 @@ export function SwipeCard({ profile, onSwipe, isTop }: SwipeCardProps) {
           Tap to view profile
         </div>
 
-        {/* Swipe Indicators */}
+        {/* Swipe Up Indicator (Skip) */}
         <motion.div
-          className="absolute top-4 sm:top-8 left-4 sm:left-8 px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-success text-success-foreground font-bold text-lg sm:text-2xl rotate-12 border-2 sm:border-4 border-success-foreground"
-          style={{ opacity: likeOpacity }}
-        >
-          CONNECT
-        </motion.div>
-        <motion.div
-          className="absolute top-14 sm:top-8 left-4 sm:left-8 px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-lg sm:text-2xl -rotate-12 border-2 sm:border-4 border-destructive-foreground"
-          style={{ opacity: nopeOpacity }}
+          className="absolute top-4 sm:top-8 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-lg sm:text-2xl border-2 sm:border-4 border-destructive-foreground"
+          style={{ opacity: skipOpacity }}
         >
           SKIP
         </motion.div>
