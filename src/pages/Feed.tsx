@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { triggerHaptic } from "@/hooks/useHapticFeedback";
 
 interface PostWithAuthor {
   id: string;
@@ -57,7 +58,6 @@ export default function Feed() {
       return;
     }
 
-    // Get likes and comments counts
     const postsWithCounts = await Promise.all(
       (postsData || []).map(async (post) => {
         const [likesResult, commentsResult, userLikeResult] = await Promise.all([
@@ -88,6 +88,7 @@ export default function Feed() {
   }, [profile]);
 
   const handleRefresh = useCallback(async () => {
+    triggerHaptic('medium');
     await fetchPosts();
   }, [fetchPosts]);
 
@@ -99,7 +100,6 @@ export default function Feed() {
   useEffect(() => {
     fetchPosts();
 
-    // Real-time subscription for posts, likes, and comments
     const channel = supabase
       .channel('feed-realtime')
       .on(
@@ -212,6 +212,8 @@ export default function Feed() {
       return;
     }
 
+    triggerHaptic('medium');
+
     const { error } = await supabase
       .from('posts')
       .insert({
@@ -237,18 +239,18 @@ export default function Feed() {
       return;
     }
 
+    triggerHaptic('light');
+
     const post = posts.find(p => p.id === postId);
     if (!post) return;
 
     if (post.user_liked) {
-      // Unlike
       await supabase
         .from('post_likes')
         .delete()
         .eq('post_id', postId)
         .eq('profile_id', profile.id);
     } else {
-      // Like
       await supabase
         .from('post_likes')
         .insert({
@@ -257,7 +259,6 @@ export default function Feed() {
         });
     }
 
-    // Update local state
     setPosts(prev => prev.map(p => 
       p.id === postId 
         ? { 
@@ -330,7 +331,7 @@ export default function Feed() {
           transition: pullDistance === 0 ? 'transform 0.3s ease' : 'none',
         }}
       >
-        <div className="max-w-xl mx-auto space-y-4 sm:space-y-6">
+        <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
           {isProfileComplete && <CreatePost onPost={handleNewPost} />}
           
           {posts.length === 0 ? (

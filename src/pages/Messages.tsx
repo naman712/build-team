@@ -12,6 +12,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
+import { triggerHaptic } from "@/hooks/useHapticFeedback";
 import {
   Tooltip,
   TooltipContent,
@@ -67,7 +68,6 @@ export default function Messages() {
   const fetchChats = async () => {
     if (!profile) return;
 
-    // Get all accepted connections
     const { data: connections, error } = await supabase
       .from('connections')
       .select(`
@@ -94,7 +94,6 @@ export default function Messages() {
       return;
     }
 
-    // Get last message for each connection
     const chatPreviews: ChatPreview[] = await Promise.all(
       (connections || []).map(async (conn: any) => {
         const otherProfile = conn.requester_id === profile.id ? conn.receiver : conn.requester;
@@ -133,7 +132,6 @@ export default function Messages() {
     setChats(chatPreviews);
     setLoading(false);
 
-    // Auto-select chat from URL param
     const connectionParam = searchParams.get('connection');
     if (connectionParam) {
       const chat = chatPreviews.find(c => c.connectionId === connectionParam);
@@ -157,7 +155,6 @@ export default function Messages() {
 
     setMessages(data || []);
 
-    // Mark messages as read
     if (profile) {
       await supabase
         .from('messages')
@@ -178,7 +175,6 @@ export default function Messages() {
     if (selectedChat && profile) {
       fetchMessages(selectedChat.connectionId);
 
-      // Subscribe to new messages
       const messagesChannel = supabase
         .channel(`messages-${selectedChat.connectionId}`)
         .on(
@@ -192,7 +188,6 @@ export default function Messages() {
           (payload) => {
             const newMessage = payload.new as Message;
             setMessages(prev => [...prev, newMessage]);
-            // Play receive sound only for messages from others
             if (newMessage.sender_id !== profile.id) {
               playSoundEffect('receiveMessage');
             }
@@ -200,12 +195,10 @@ export default function Messages() {
         )
         .subscribe();
 
-      // Subscribe to typing presence
       const typingChannel = supabase
         .channel(`typing-${selectedChat.connectionId}`)
         .on('presence', { event: 'sync' }, () => {
           const state = typingChannel.presenceState();
-          // Check if the other user is typing
           const otherTyping = Object.values(state).some((presences: any) =>
             presences.some((p: any) => p.isTyping && p.profileId !== profile.id)
           );
@@ -223,22 +216,18 @@ export default function Messages() {
     }
   }, [selectedChat, profile]);
 
-  // Handle typing indicator
   const handleTyping = () => {
     if (!selectedChat || !profile || !typingChannelRef.current) return;
 
-    // Track typing state
     typingChannelRef.current.track({
       profileId: profile.id,
       isTyping: true,
     });
 
-    // Clear previous timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Stop typing after 2 seconds of inactivity
     typingTimeoutRef.current = setTimeout(() => {
       if (typingChannelRef.current) {
         typingChannelRef.current.track({
@@ -258,7 +247,6 @@ export default function Messages() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast.error("File must be less than 10MB");
       return;
@@ -266,7 +254,6 @@ export default function Messages() {
 
     setSelectedFile(file);
 
-    // Create preview for images
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -315,6 +302,7 @@ export default function Messages() {
   const handleSend = async () => {
     if ((!newMessage.trim() && !selectedFile) || !selectedChat || !profile) return;
 
+    triggerHaptic('medium');
     setSendingMessage(true);
     
     let attachmentUrl: string | null = null;
@@ -345,8 +333,13 @@ export default function Messages() {
   };
 
   const handleGoogleMeet = () => {
-    // Open Google Calendar to create a new meeting event
+    triggerHaptic('selection');
     window.open('https://calendar.google.com/calendar/u/0/r/eventedit', '_blank');
+  };
+
+  const handleChatSelect = (chat: ChatPreview) => {
+    triggerHaptic('selection');
+    setSelectedChat(chat);
   };
 
   const formatTime = (timestamp: string) => {
@@ -421,12 +414,11 @@ export default function Messages() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      {/* Main content area - fixed positioning to account for both navbars */}
-      <main className="fixed top-14 bottom-16 md:bottom-0 left-0 right-0 px-4 py-2 overflow-hidden">
-        <div className="max-w-4xl mx-auto h-full flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
+      <main className="fixed top-14 bottom-16 md:bottom-0 left-0 right-0 px-2 sm:px-4 py-2 overflow-hidden">
+        <div className="max-w-5xl mx-auto h-full flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
           {/* Chat List */}
           <div className={cn(
-            "w-full md:w-80 border-r border-border flex flex-col",
+            "w-full md:w-80 lg:w-96 border-r border-border flex flex-col",
             selectedChat && "hidden md:flex"
           )}>
             <div className="p-4 border-b border-border">
@@ -444,7 +436,7 @@ export default function Messages() {
                 <motion.button
                   key={chat.connectionId}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedChat(chat)}
+                  onClick={() => handleChatSelect(chat)}
                   className={cn(
                     "w-full p-4 flex items-start gap-3 hover:bg-secondary/50 transition-colors text-left",
                     selectedChat?.connectionId === chat.connectionId && "bg-secondary"
@@ -481,7 +473,10 @@ export default function Messages() {
                     variant="ghost"
                     size="sm"
                     className="md:hidden"
-                    onClick={() => setSelectedChat(null)}
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setSelectedChat(null);
+                    }}
                   >
                     ←
                   </Button>
@@ -498,27 +493,22 @@ export default function Messages() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
                       onClick={handleGoogleMeet}
-                      className="text-muted-foreground hover:text-primary"
                     >
-                      <Video className="w-5 h-5" />
+                      <Video className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Schedule Google Meet</p>
-                  </TooltipContent>
+                  <TooltipContent>Schedule a Google Meet</TooltipContent>
                 </Tooltip>
               </div>
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((message) => (
-                  <motion.div
+                  <div
                     key={message.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
                     className={cn(
                       "flex",
                       message.sender_id === profile?.id ? "justify-end" : "justify-start"
@@ -526,47 +516,36 @@ export default function Messages() {
                   >
                     <div
                       className={cn(
-                        "max-w-[70%] rounded-2xl px-4 py-2",
+                        "max-w-[75%] sm:max-w-[70%] rounded-2xl px-4 py-2 space-y-1",
                         message.sender_id === profile?.id
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-secondary rounded-bl-md"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary"
                       )}
                     >
-                      {/* Attachment */}
                       {message.attachment_url && (
                         <div className="mb-2">
                           {isImageUrl(message.attachment_url) ? (
-                            <a href={message.attachment_url} target="_blank" rel="noopener noreferrer">
-                              <img 
-                                src={message.attachment_url} 
-                                alt="Attachment" 
-                                className="max-w-full max-h-48 rounded-lg object-cover"
-                              />
-                            </a>
+                            <img
+                              src={message.attachment_url}
+                              alt="attachment"
+                              className="rounded-lg max-w-full max-h-60 object-cover"
+                            />
                           ) : (
-                            <a 
-                              href={message.attachment_url} 
-                              target="_blank" 
+                            <a
+                              href={message.attachment_url}
+                              target="_blank"
                               rel="noopener noreferrer"
-                              className={cn(
-                                "flex items-center gap-2 p-2 rounded-lg",
-                                message.sender_id === profile?.id
-                                  ? "bg-primary-foreground/10 hover:bg-primary-foreground/20"
-                                  : "bg-background/50 hover:bg-background/80"
-                              )}
+                              className="flex items-center gap-2 p-2 bg-background/20 rounded-lg hover:bg-background/30 transition-colors"
                             >
-                              <FileText className="w-5 h-5 flex-shrink-0" />
+                              <FileText className="w-5 h-5" />
                               <span className="text-sm truncate">{getFileName(message.attachment_url)}</span>
                             </a>
                           )}
                         </div>
                       )}
-                      
-                      {message.content && (
-                        <p className="text-sm">{message.content}</p>
-                      )}
+                      {message.content && <p className="text-sm">{message.content}</p>}
                       <p className={cn(
-                        "text-xs mt-1",
+                        "text-[10px]",
                         message.sender_id === profile?.id
                           ? "text-primary-foreground/70"
                           : "text-muted-foreground"
@@ -574,36 +553,19 @@ export default function Messages() {
                         {formatMessageTime(message.created_at)}
                       </p>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
                 
-                {/* Typing Indicator */}
                 {isOtherTyping && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex justify-start"
-                  >
-                    <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-2">
-                      <div className="flex items-center gap-1">
-                        <motion.span
-                          animate={{ opacity: [0.4, 1, 0.4] }}
-                          transition={{ duration: 1.2, repeat: Infinity }}
-                          className="w-2 h-2 bg-muted-foreground rounded-full"
-                        />
-                        <motion.span
-                          animate={{ opacity: [0.4, 1, 0.4] }}
-                          transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
-                          className="w-2 h-2 bg-muted-foreground rounded-full"
-                        />
-                        <motion.span
-                          animate={{ opacity: [0.4, 1, 0.4] }}
-                          transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
-                          className="w-2 h-2 bg-muted-foreground rounded-full"
-                        />
+                  <div className="flex justify-start">
+                    <div className="bg-secondary rounded-2xl px-4 py-2">
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
                 
                 <div ref={messagesEndRef} />
@@ -611,13 +573,13 @@ export default function Messages() {
 
               {/* File Preview */}
               {selectedFile && (
-                <div className="px-4 py-2 border-t border-border bg-secondary/30">
-                  <div className="flex items-center gap-3">
+                <div className="px-4 py-2 border-t border-border">
+                  <div className="flex items-center gap-2 p-2 bg-secondary rounded-lg">
                     {filePreview ? (
-                      <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
+                      <img src={filePreview} alt="preview" className="w-12 h-12 rounded object-cover" />
                     ) : (
-                      <div className="w-16 h-16 bg-secondary rounded-lg flex items-center justify-center">
-                        <FileText className="w-8 h-8 text-muted-foreground" />
+                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-muted-foreground" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
@@ -633,7 +595,7 @@ export default function Messages() {
                 </div>
               )}
 
-              {/* Message Input */}
+              {/* Input */}
               <div className="p-4 border-t border-border">
                 <div className="flex items-center gap-2">
                   <input
@@ -641,39 +603,30 @@ export default function Messages() {
                     ref={fileInputRef}
                     onChange={handleFileSelect}
                     className="hidden"
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                    accept="image/*,.pdf,.doc,.docx,.txt"
                   />
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={sendingMessage}
-                        className="text-muted-foreground hover:text-foreground flex-shrink-0"
-                      >
-                        <Paperclip className="w-5 h-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Attach file</p>
-                    </TooltipContent>
-                  </Tooltip>
-
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      fileInputRef.current?.click();
+                    }}
+                    disabled={uploadingFile}
+                  >
+                    <Paperclip className="w-5 h-5" />
+                  </Button>
                   <Input
+                    placeholder="Type a message..."
                     value={newMessage}
                     onChange={handleInputChange}
-                    placeholder="Type a message..."
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    disabled={sendingMessage || uploadingFile}
                     className="flex-1"
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                    disabled={sendingMessage}
                   />
-                  
                   <Button 
                     onClick={handleSend} 
-                    size="icon" 
-                    disabled={sendingMessage || uploadingFile || (!newMessage.trim() && !selectedFile)}
+                    disabled={(!newMessage.trim() && !selectedFile) || sendingMessage || uploadingFile}
                   >
                     {sendingMessage || uploadingFile ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -685,8 +638,12 @@ export default function Messages() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              Select a conversation to start messaging
+            <div className="hidden md:flex flex-1 items-center justify-center">
+              <div className="text-center">
+                <MessageSquare className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold">Select a conversation</h3>
+                <p className="text-muted-foreground">Choose a chat to start messaging</p>
+              </div>
             </div>
           )}
         </div>

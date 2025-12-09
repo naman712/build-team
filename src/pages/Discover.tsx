@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { triggerHaptic } from "@/hooks/useHapticFeedback";
 
 interface SearchResult {
   id: string;
@@ -59,9 +60,16 @@ export default function Discover() {
   }, [searchQuery]);
 
   const clearSearch = () => {
+    triggerHaptic('light');
     setSearchQuery("");
     setSearchResults([]);
     setShowResults(false);
+  };
+
+  const handleResultClick = (id: string) => {
+    triggerHaptic('selection');
+    navigate(`/user/${id}`);
+    clearSearch();
   };
 
   return (
@@ -70,7 +78,7 @@ export default function Discover() {
       
       <main className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
         {/* Search Bar */}
-        <div className="max-w-md mx-auto mb-4 relative">
+        <div className="max-w-2xl mx-auto mb-4 relative">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -109,10 +117,7 @@ export default function Discover() {
                     {searchResults.map((result) => (
                       <button
                         key={result.id}
-                        onClick={() => {
-                          navigate(`/user/${result.id}`);
-                          clearSearch();
-                        }}
+                        onClick={() => handleResultClick(result.id)}
                         className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors text-left"
                       >
                         <Avatar className="w-10 h-10">
@@ -137,7 +142,7 @@ export default function Discover() {
         </div>
 
         {/* Swipe Deck */}
-        <div className="max-w-md mx-auto h-[calc(100vh-12rem)]">
+        <div className="max-w-2xl mx-auto h-[calc(100vh-12rem)]">
           <SwipeDeck />
         </div>
       </main>
