@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { z } from 'zod';
 
 const signupSchema = z.object({
@@ -26,7 +26,6 @@ const loginSchema = z.object({
 export default function Auth() {
   const { user, signIn, signUp, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [signupStep, setSignupStep] = useState(1);
   
   // Form fields
   const [name, setName] = useState('');
@@ -43,7 +42,7 @@ export default function Auth() {
   }
 
   if (user) {
-    return <Navigate to="/discover" replace />;
+    return <Navigate to="/feed" replace />;
   }
 
   const handleLogin = async () => {
@@ -70,18 +69,6 @@ export default function Auth() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSignupStepOne = () => {
-    if (!name.trim() || name.length < 2) {
-      toast.error('Please enter your full name');
-      return;
-    }
-    if (!phone.trim() || phone.length < 10) {
-      toast.error('Please enter a valid phone number');
-      return;
-    }
-    setSignupStep(2);
   };
 
   const handleSignup = async () => {
@@ -151,7 +138,6 @@ export default function Auth() {
   };
 
   const resetSignup = () => {
-    setSignupStep(1);
     setName('');
     setPhone('');
     setEmail('');
@@ -227,107 +213,70 @@ export default function Auth() {
 
             <TabsContent value="signup">
               <CardHeader className="pt-0 pb-2">
-                <CardTitle className="text-xl">
-                  {signupStep === 1 ? 'Create account' : 'Almost there!'}
-                </CardTitle>
+                <CardTitle className="text-xl">Create account</CardTitle>
                 <CardDescription>
-                  {signupStep === 1 
-                    ? 'Tell us about yourself' 
-                    : 'Set up your login credentials'}
+                  Enter your details to get started
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {signupStep === 1 ? (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name">Full Name</Label>
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        placeholder="John Doe"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-phone">Phone Number</Label>
-                      <Input
-                        id="signup-phone"
-                        type="tel"
-                        placeholder="+1 (555) 123-4567"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        disabled={isLoading}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSignupStepOne()}
-                      />
-                    </div>
-                    <Button 
-                      className="w-full bg-gradient-primary hover:opacity-90 transition-opacity" 
-                      onClick={handleSignupStepOne}
-                      disabled={isLoading}
-                    >
-                      Continue
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={isLoading}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSignup()}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Must be at least 6 characters
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
-                      <Button 
-                        variant="outline"
-                        className="flex-1" 
-                        onClick={() => setSignupStep(1)}
-                        disabled={isLoading}
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back
-                      </Button>
-                      <Button 
-                        className="flex-1 bg-gradient-primary hover:opacity-90 transition-opacity" 
-                        onClick={handleSignup}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Create Account
-                      </Button>
-                    </div>
-                  </>
-                )}
-
-                {/* Progress indicator */}
-                <div className="flex justify-center gap-2 pt-2">
-                  <div className={`w-2 h-2 rounded-full transition-colors ${signupStep === 1 ? 'bg-primary' : 'bg-muted'}`} />
-                  <div className={`w-2 h-2 rounded-full transition-colors ${signupStep === 2 ? 'bg-primary' : 'bg-muted'}`} />
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={isLoading}
+                  />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-phone">Phone Number</Label>
+                  <Input
+                    id="signup-phone"
+                    type="tel"
+                    placeholder="+1 (555) 123-4567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSignup()}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Must be at least 6 characters
+                  </p>
+                </div>
+                <Button 
+                  className="w-full bg-gradient-primary hover:opacity-90 transition-opacity" 
+                  onClick={handleSignup}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  Create Account
+                </Button>
               </CardContent>
             </TabsContent>
           </Tabs>

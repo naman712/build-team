@@ -36,8 +36,8 @@ const App = () => (
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/discover" element={<ProtectedRoute><RequireCompleteProfile><Discover /></RequireCompleteProfile></ProtectedRoute>} />
               <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
-              <Route path="/connections" element={<ProtectedRoute><RequireCompleteProfile><Connections /></RequireCompleteProfile></ProtectedRoute>} />
-              <Route path="/messages" element={<ProtectedRoute><RequireCompleteProfile><Messages /></RequireCompleteProfile></ProtectedRoute>} />
+              <Route path="/connections" element={<ProtectedRoute><Connections /></ProtectedRoute>} />
+              <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/user/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
