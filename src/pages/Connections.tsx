@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { playSoundEffect } from "@/hooks/useSoundEffects";
+import { triggerHaptic } from "@/hooks/useHapticFeedback";
 
 interface ConnectionWithProfile {
   id: string;
@@ -102,29 +103,25 @@ export default function Connections() {
     return conn.requester_id === profile?.id ? conn.receiver_profile : conn.requester_profile;
   };
 
-  // Get all unique interests from connections for filter chips
   const allInterests = useMemo(() => {
     const interests = new Set<string>();
     connections.forEach((conn) => {
       const otherProfile = getOtherProfile(conn);
       otherProfile.interests?.forEach((interest) => interests.add(interest));
     });
-    return Array.from(interests).slice(0, 10); // Limit to 10 interests
+    return Array.from(interests).slice(0, 10);
   }, [connections, profile?.id]);
 
-  // Filter function for connections
   const filterConnections = (conns: ConnectionWithProfile[]) => {
     return conns.filter((conn) => {
       const otherProfile = getOtherProfile(conn);
       const searchLower = searchQuery.toLowerCase();
       
-      // Search by name, city, or looking_for
       const matchesSearch = !searchQuery || 
         (otherProfile.name?.toLowerCase().includes(searchLower)) ||
         (otherProfile.city?.toLowerCase().includes(searchLower)) ||
         (otherProfile.looking_for?.toLowerCase().includes(searchLower));
       
-      // Filter by interest
       const matchesInterest = !selectedInterest ||
         otherProfile.interests?.includes(selectedInterest);
       
@@ -143,6 +140,7 @@ export default function Connections() {
   );
 
   const handleAccept = async (connectionId: string) => {
+    triggerHaptic('success');
     const { error } = await supabase
       .from('connections')
       .update({ status: 'accepted' })
@@ -162,6 +160,7 @@ export default function Connections() {
   };
 
   const handleReject = async (connectionId: string) => {
+    triggerHaptic('light');
     const { error } = await supabase
       .from('connections')
       .update({ status: 'rejected' })
@@ -179,6 +178,7 @@ export default function Connections() {
   };
 
   const handleRemove = async (connectionId: string) => {
+    triggerHaptic('medium');
     const connection = connections.find((c) => c.id === connectionId);
     const otherProfile = connection ? getOtherProfile(connection) : null;
 
@@ -198,7 +198,12 @@ export default function Connections() {
   };
 
   const handleMessage = (connectionId: string) => {
+    triggerHaptic('selection');
     navigate(`/messages?connection=${connectionId}`);
+  };
+
+  const handleTabChange = () => {
+    triggerHaptic('selection');
   };
 
   if (loading) {
@@ -217,14 +222,14 @@ export default function Connections() {
       <Navbar />
       
       <main className="container mx-auto px-4 py-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-3xl font-bold mb-2">Connections</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Connections</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
               Manage your network and connect with fellow founders
             </p>
           </motion.div>
@@ -262,9 +267,10 @@ export default function Connections() {
                     key={interest}
                     variant={selectedInterest === interest ? "default" : "outline"}
                     className="cursor-pointer hover:bg-primary/10"
-                    onClick={() => setSelectedInterest(
-                      selectedInterest === interest ? null : interest
-                    )}
+                    onClick={() => {
+                      triggerHaptic('selection');
+                      setSelectedInterest(selectedInterest === interest ? null : interest);
+                    }}
                   >
                     {interest}
                     {selectedInterest === interest && (
@@ -275,7 +281,7 @@ export default function Connections() {
               </div>
             )}
           </motion.div>
-          <Tabs defaultValue="received" className="w-full">
+          <Tabs defaultValue="received" className="w-full" onValueChange={handleTabChange}>
             <TabsList className="w-full grid grid-cols-3 mb-6">
               <TabsTrigger value="received" className="relative text-xs sm:text-sm px-2 sm:px-3">
                 <span className="hidden sm:inline">Requests</span>
