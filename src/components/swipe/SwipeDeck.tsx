@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Heart, RotateCcw, Users, Loader2 } from "lucide-react";
+import { ChevronUp, UserPlus, RotateCcw, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SwipeCard, ProfileData } from "./SwipeCard";
 import { toast } from "sonner";
@@ -133,14 +133,14 @@ export function SwipeDeck() {
     }
   };
 
-  const handleSwipe = async (direction: "left" | "right") => {
+  const handleSwipe = async (direction: "up" | "connect") => {
     if (profiles.length === 0 || !myProfileId) return;
 
     const swipedProfile = profiles[profiles.length - 1];
     setLastSwiped(swipedProfile);
     setProfiles((prev) => prev.slice(0, -1));
 
-    if (direction === "right") {
+    if (direction === "connect") {
       // Send connection request
       playSoundEffect('swipeRight');
       try {
@@ -188,8 +188,8 @@ export function SwipeDeck() {
     }
   };
 
-  const handleButtonSwipe = (direction: "left" | "right") => {
-    handleSwipe(direction);
+  const handleConnect = () => {
+    handleSwipe("connect");
   };
 
   if (loading) {
@@ -236,16 +236,26 @@ export function SwipeDeck() {
         ))}
       </div>
 
-      {/* Swipe Instructions */}
-      <div className="flex items-center justify-center gap-8 py-4 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <X className="w-5 h-5 text-destructive" />
-          <span>Swipe left to skip</span>
+      {/* Action Buttons */}
+      <div className="flex items-center justify-center gap-6 py-4">
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <ChevronUp className="w-4 h-4" />
+            <span>Swipe up to skip</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Heart className="w-5 h-5 text-success" />
-          <span>Swipe right to connect</span>
-        </div>
+      </div>
+
+      {/* Connect Button */}
+      <div className="flex justify-center pb-4">
+        <Button
+          size="lg"
+          className="gap-2 bg-gradient-primary hover:opacity-90 text-primary-foreground px-8 py-6 text-lg rounded-2xl shadow-glow"
+          onClick={handleConnect}
+        >
+          <UserPlus className="w-6 h-6" />
+          Connect
+        </Button>
       </div>
 
       {/* Undo Button - Only show if there's a last swiped profile */}

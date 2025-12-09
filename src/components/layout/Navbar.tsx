@@ -43,7 +43,7 @@ export function Navbar() {
               <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-lg">F</span>
               </div>
-              <span className="font-bold text-lg text-foreground">FounderHive</span>
+              <span className="font-bold text-lg text-foreground">FounderNow</span>
             </Link>
 
             <Link to="/notifications" className="relative p-2 rounded-full hover:bg-muted transition-colors">
