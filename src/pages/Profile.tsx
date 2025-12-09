@@ -219,18 +219,24 @@ export default function Profile() {
 
               {/* Tabs for Edit Profile and My Posts */}
               <div className="mt-6">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="profile" className="gap-2">
-                      <Edit2 className="w-4 h-4" />
-                      Edit Profile
-                    </TabsTrigger>
-                    <TabsTrigger value="posts" className="gap-2">
-                      <FileText className="w-4 h-4" />
-                      My Posts ({posts.length})
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                <div className="flex gap-2">
+                  <Button 
+                    variant={activeTab === "profile" ? "default" : "outline"}
+                    className="flex-1 gap-2"
+                    onClick={() => navigate('/onboarding?edit=true')}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit Profile
+                  </Button>
+                  <Button 
+                    variant={activeTab === "posts" ? "default" : "outline"}
+                    className="flex-1 gap-2"
+                    onClick={() => setActiveTab("posts")}
+                  >
+                    <FileText className="w-4 h-4" />
+                    My Posts ({posts.length})
+                  </Button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -401,14 +407,6 @@ export default function Profile() {
                 </Card>
               )}
 
-              {/* Edit Profile Button */}
-              <Button 
-                className="w-full gap-2" 
-                onClick={() => navigate('/onboarding?edit=true')}
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit Profile
-              </Button>
             </>
           ) : (
             <>
