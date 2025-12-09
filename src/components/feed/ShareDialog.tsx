@@ -36,10 +36,25 @@ export function ShareDialog({ open, onOpenChange, postId, postContent }: ShareDi
   const [sendingTo, setSendingTo] = useState<string | null>(null);
   const { profile } = useProfile();
   
-  const shareUrl = `${window.location.origin}/feed?post=${postId}`;
+  // Use the published app URL for sharing, not the preview URL
+  const getShareBaseUrl = () => {
+    const currentHost = window.location.host;
+    // If on lovable.app preview, use the published .lovable.app domain
+    if (currentHost.includes('lovableproject.com') || currentHost.includes('webcontainer')) {
+      // Extract project ID and construct the published URL
+      const projectMatch = currentHost.match(/id-([a-zA-Z0-9]+)/);
+      if (projectMatch) {
+        return `https://${projectMatch[1]}.lovable.app`;
+      }
+    }
+    // Otherwise use current origin (production or custom domain)
+    return window.location.origin;
+  };
+  
+  const shareUrl = `${getShareBaseUrl()}/feed?post=${postId}`;
   const shareText = postContent 
     ? `${postContent.slice(0, 100)}${postContent.length > 100 ? '...' : ''}`
-    : "Check out this post on FounderHive!";
+    : "Check out this post on FounderNow!";
 
   useEffect(() => {
     if (showConnections && profile) {
