@@ -287,7 +287,7 @@ export default function Feed() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-28 md:pb-0 pt-16 md:pt-20">
+      <div className="min-h-screen bg-background pb-4 pt-16 md:pt-20">
         <Navbar />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -299,7 +299,7 @@ export default function Feed() {
   return (
     <div 
       ref={containerRef}
-      className="min-h-screen bg-background pb-28 md:pb-0 pt-16 md:pt-20"
+      className="min-h-screen bg-background pb-4 pt-16 md:pt-20"
     >
       <Navbar />
       
