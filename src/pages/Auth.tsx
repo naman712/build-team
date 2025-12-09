@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { toast } from 'sonner';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 import { z } from 'zod';
 
 const signupSchema = z.object({
@@ -23,10 +25,23 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+type AuthStep = 'form' | 'otp-verification';
+
 export default function Auth() {
-  const { user, signIn, signUp, loading: authLoading } = useAuth();
+  const { user, signIn, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [authStep, setAuthStep] = useState<AuthStep>('form');
+  const [otpValue, setOtpValue] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [pendingName, setPendingName] = useState('');
+  const [pendingPhone, setPendingPhone] = useState('');
+  
+  // Forgot password state
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
   
   // Form fields
   const [name, setName] = useState('');
@@ -66,6 +81,37 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    const emailValidation = z.string().email().safeParse(forgotPasswordEmail);
+    if (!emailValidation.success) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setForgotPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        setForgotPasswordSent(true);
+        toast.success('Password reset email sent!');
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
   const handleLogin = async () => {
     const validation = loginSchema.safeParse({ email, password });
     
@@ -81,6 +127,8 @@ export default function Auth() {
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           toast.error('Invalid email or password. Please try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error('Please verify your email before signing in.');
         } else {
           toast.error(error.message);
         }
@@ -103,7 +151,19 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const { error } = await signUp(email, password);
+      // Sign up with email OTP
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/feed`,
+          data: {
+            name,
+            phone,
+          },
+        },
+      });
+
       if (error) {
         if (error.message.includes('already registered')) {
           toast.error('This email is already registered. Please sign in instead.');
@@ -114,56 +174,182 @@ export default function Auth() {
         return;
       }
 
-      // Wait for the trigger to create the profile, then update it with retries
-      const updateProfileWithRetry = async (retries = 3) => {
-        const { data: { user: newUser } } = await supabase.auth.getUser();
-        if (!newUser) {
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            return updateProfileWithRetry(retries - 1);
-          }
-          return;
-        }
-
-        // Check if profile exists
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', newUser.id)
-          .maybeSingle();
-
-        if (!existingProfile && retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          return updateProfileWithRetry(retries - 1);
-        }
-
-        if (existingProfile) {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ name, phone })
-            .eq('user_id', newUser.id);
-          
-          if (updateError) {
-            console.error('Error updating profile:', updateError);
-          }
-        }
-      };
-
-      await updateProfileWithRetry();
-      setIsLoading(false);
-      toast.success('Account created successfully!');
+      // Store pending user data for after verification
+      setPendingEmail(email);
+      setPendingName(name);
+      setPendingPhone(phone);
+      setAuthStep('otp-verification');
+      toast.success('Verification code sent to your email!');
     } catch (err) {
       toast.error('An unexpected error occurred');
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const resetSignup = () => {
+  const handleVerifyOtp = async () => {
+    if (otpValue.length !== 6) {
+      toast.error('Please enter the complete 6-digit code');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: pendingEmail,
+        token: otpValue,
+        type: 'signup',
+      });
+
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // Update profile with name and phone after verification
+      if (data.user) {
+        const updateProfileWithRetry = async (retries = 3) => {
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', data.user!.id)
+            .maybeSingle();
+
+          if (!existingProfile && retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return updateProfileWithRetry(retries - 1);
+          }
+
+          if (existingProfile) {
+            await supabase
+              .from('profiles')
+              .update({ name: pendingName, phone: pendingPhone })
+              .eq('user_id', data.user!.id);
+          }
+        };
+
+        await updateProfileWithRetry();
+      }
+
+      toast.success('Email verified successfully!');
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: pendingEmail,
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Verification code resent!');
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
     setName('');
     setPhone('');
     setEmail('');
     setPassword('');
+    setAuthStep('form');
+    setOtpValue('');
+    setPendingEmail('');
+    setPendingName('');
+    setPendingPhone('');
   };
+
+  // OTP Verification Screen
+  if (authStep === 'otp-verification') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 mb-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Mail className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Verify Your Email</h1>
+            <p className="text-muted-foreground mt-2">
+              We've sent a 6-digit code to<br />
+              <span className="font-medium text-foreground">{pendingEmail}</span>
+            </p>
+          </div>
+
+          <Card className="shadow-card border-border/50">
+            <CardContent className="pt-6 space-y-6">
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={otpValue}
+                  onChange={(value) => setOtpValue(value)}
+                  disabled={isLoading}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+
+              <Button 
+                className="w-full bg-gradient-primary hover:opacity-90 transition-opacity" 
+                onClick={handleVerifyOtp}
+                disabled={isLoading || otpValue.length !== 6}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Verify Email
+              </Button>
+
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Didn't receive the code?
+                </p>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleResendOtp}
+                  disabled={isLoading}
+                >
+                  Resend Code
+                </Button>
+              </div>
+
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={resetForm}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Sign Up
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
@@ -180,7 +366,7 @@ export default function Auth() {
         </div>
 
         <Card className="shadow-card border-border/50">
-          <Tabs defaultValue="login" className="w-full" onValueChange={() => resetSignup()}>
+          <Tabs defaultValue="login" className="w-full" onValueChange={resetForm}>
             <CardHeader className="pb-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
@@ -249,7 +435,78 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="login-password">Password</Label>
+                    <Dialog open={forgotPasswordOpen} onOpenChange={(open) => {
+                      setForgotPasswordOpen(open);
+                      if (!open) {
+                        setForgotPasswordSent(false);
+                        setForgotPasswordEmail('');
+                      }
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button variant="link" className="px-0 h-auto text-xs text-primary">
+                          Forgot password?
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        {forgotPasswordSent ? (
+                          <div className="text-center py-4">
+                            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
+                              <CheckCircle className="w-8 h-8 text-success" />
+                            </div>
+                            <DialogHeader>
+                              <DialogTitle>Check your email</DialogTitle>
+                              <DialogDescription className="pt-2">
+                                We've sent a password reset link to<br />
+                                <span className="font-medium text-foreground">{forgotPasswordEmail}</span>
+                              </DialogDescription>
+                            </DialogHeader>
+                            <Button 
+                              className="mt-4" 
+                              variant="outline"
+                              onClick={() => setForgotPasswordOpen(false)}
+                            >
+                              Close
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <DialogHeader>
+                              <DialogTitle>Reset Password</DialogTitle>
+                              <DialogDescription>
+                                Enter your email address and we'll send you a link to reset your password.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 pt-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="forgot-email">Email</Label>
+                                <Input
+                                  id="forgot-email"
+                                  type="email"
+                                  placeholder="you@example.com"
+                                  value={forgotPasswordEmail}
+                                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                                  disabled={forgotPasswordLoading}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
+                                />
+                              </div>
+                              <Button 
+                                className="w-full bg-gradient-primary hover:opacity-90" 
+                                onClick={handleForgotPassword}
+                                disabled={forgotPasswordLoading}
+                              >
+                                {forgotPasswordLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : null}
+                                Send Reset Link
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   <Input
                     id="login-password"
                     type="password"
