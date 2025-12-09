@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Send, Loader2, Reply, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Send, Loader2, Reply, ChevronDown, ChevronUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -265,12 +265,7 @@ export function PostCard({ post, onLike }: PostCardProps) {
             <p className="text-xs sm:text-sm text-muted-foreground truncate">{post.author.role}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          <span className="text-[10px] sm:text-xs text-muted-foreground">{post.timestamp}</span>
-          <Button variant="ghost" size="icon" className="text-muted-foreground w-8 h-8 sm:w-10 sm:h-10">
-            <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
-        </div>
+        <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">{post.timestamp}</span>
       </div>
 
       {/* Content */}
