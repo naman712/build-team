@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FileText, Loader2, RefreshCw } from "lucide-react";
+import { FileText, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { CreatePost } from "@/components/feed/CreatePost";
 import { PostCard } from "@/components/feed/PostCard";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
@@ -29,8 +31,12 @@ interface PostWithAuthor {
 }
 
 export default function Feed() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const sharedPostId = searchParams.get('post');
   const { profile, isProfileComplete } = useProfile();
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
+  const [sharedPost, setSharedPost] = useState<PostWithAuthor | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchPosts = useCallback(async () => {
@@ -87,6 +93,57 @@ export default function Feed() {
     setLoading(false);
   }, [profile]);
 
+  // Fetch single shared post
+  const fetchSharedPost = useCallback(async (postId: string) => {
+    const { data: postData, error } = await supabase
+      .from('posts')
+      .select(`
+        id,
+        content,
+        image_url,
+        tags,
+        created_at,
+        profile_id,
+        profiles!posts_profile_id_fkey (
+          id,
+          name,
+          photo_url,
+          looking_for
+        )
+      `)
+      .eq('id', postId)
+      .maybeSingle();
+
+    if (error || !postData) {
+      console.error('Error fetching shared post:', error);
+      toast.error("Post not found");
+      navigate('/feed');
+      return;
+    }
+
+    const [likesResult, commentsResult, userLikeResult] = await Promise.all([
+      supabase.from('post_likes').select('id', { count: 'exact' }).eq('post_id', postData.id),
+      supabase.from('post_comments').select('id', { count: 'exact' }).eq('post_id', postData.id),
+      profile 
+        ? supabase.from('post_likes').select('id').eq('post_id', postData.id).eq('profile_id', profile.id).maybeSingle()
+        : Promise.resolve({ data: null })
+    ]);
+
+    setSharedPost({
+      id: postData.id,
+      content: postData.content,
+      image_url: postData.image_url,
+      tags: postData.tags || [],
+      created_at: postData.created_at,
+      profile_id: postData.profile_id,
+      profile: postData.profiles as any,
+      likes_count: likesResult.count || 0,
+      comments_count: commentsResult.count || 0,
+      user_liked: !!userLikeResult.data,
+    });
+    setLoading(false);
+  }, [profile, navigate]);
+
   const handleRefresh = useCallback(async () => {
     triggerHaptic('medium');
     await fetchPosts();
@@ -98,9 +155,14 @@ export default function Feed() {
   });
 
   useEffect(() => {
-    fetchPosts();
+    if (sharedPostId) {
+      fetchSharedPost(sharedPostId);
+    } else {
+      fetchPosts();
+    }
 
-    const channel = supabase
+    if (!sharedPostId) {
+      const channel = supabase
       .channel('feed-realtime')
       .on(
         'postgres_changes',
@@ -196,10 +258,11 @@ export default function Feed() {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [profile]);
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [profile, sharedPostId, fetchPosts, fetchSharedPost]);
 
   const handleNewPost = async (content: string, imageUrl?: string) => {
     if (!profile) {
@@ -292,6 +355,54 @@ export default function Feed() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      </div>
+    );
+  }
+
+  // Show single shared post view
+  if (sharedPostId && sharedPost) {
+    return (
+      <div className="min-h-screen bg-background pb-4 pt-16 md:pt-20">
+        <Navbar />
+        <main className="container mx-auto px-4 py-4 sm:py-6">
+          <div className="max-w-2xl mx-auto space-y-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate('/feed')}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Feed
+            </Button>
+            
+            <PostCard
+              post={{
+                id: sharedPost.id,
+                author: {
+                  id: sharedPost.profile.id,
+                  name: sharedPost.profile.name || "Anonymous",
+                  avatar: sharedPost.profile.photo_url || "",
+                  role: sharedPost.profile.looking_for || "Founder",
+                },
+                content: sharedPost.content,
+                image: sharedPost.image_url || undefined,
+                tags: sharedPost.tags,
+                likes: sharedPost.likes_count,
+                comments: sharedPost.comments_count,
+                timestamp: formatTimestamp(sharedPost.created_at),
+                isLiked: sharedPost.user_liked,
+              }}
+              onLike={handleLike}
+            />
+            
+            <div className="text-center py-4">
+              <Button onClick={() => navigate(`/user/${sharedPost.profile.id}`)}>
+                View {sharedPost.profile.name || "User"}'s Profile
+              </Button>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
