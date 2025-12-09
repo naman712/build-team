@@ -84,19 +84,8 @@ export function Navbar() {
             })}
           </nav>
 
-          {/* Right: Messages & Notifications */}
+          {/* Right: Notifications & Messages */}
           <div className="flex items-center gap-1">
-            <Link 
-              to="/messages" 
-              className={cn(
-                "relative p-2 rounded-full hover:bg-muted transition-colors",
-                location.pathname === "/messages" && "text-primary bg-primary/10"
-              )}
-              onClick={handleNavClick}
-            >
-              <MessageCircle className="w-5 h-5" />
-            </Link>
-            
             <Link 
               to="/notifications" 
               className={cn(
@@ -111,6 +100,17 @@ export function Navbar() {
                   {totalNotifications > 99 ? "99+" : totalNotifications}
                 </span>
               )}
+            </Link>
+            
+            <Link 
+              to="/messages" 
+              className={cn(
+                "relative p-2 rounded-full hover:bg-muted transition-colors",
+                location.pathname === "/messages" && "text-primary bg-primary/10"
+              )}
+              onClick={handleNavClick}
+            >
+              <MessageCircle className="w-5 h-5" />
             </Link>
           </div>
         </div>
