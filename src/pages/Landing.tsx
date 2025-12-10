@@ -65,7 +65,7 @@ export default function Landing() {
           >
             <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm">
               <Star className="w-4 h-4 mr-2 text-primary" />
-              #1 Co-Founder Matching Platform
+              Co-Founder Matching Platform
             </Badge>
             
             <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-tight">
