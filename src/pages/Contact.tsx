@@ -46,10 +46,10 @@ export default function Contact() {
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Email Support</h3>
                   <a 
-                    href="mailto:support@foundernow.in"
+                    href="mailto:naman@foundernow.in"
                     className="text-primary hover:underline text-lg font-medium"
                   >
-                    support@foundernow.in
+                    naman@foundernow.in
                   </a>
                   <p className="text-sm text-muted-foreground mt-2 text-center">
                     We typically respond within 24 hours
@@ -60,7 +60,7 @@ export default function Contact() {
                   variant="hero" 
                   size="lg" 
                   className="w-full"
-                  onClick={() => window.location.href = "mailto:support@foundernow.in"}
+                  onClick={() => window.location.href = "mailto:naman@foundernow.in"}
                 >
                   <Mail className="w-5 h-5 mr-2" />
                   Send us an Email
