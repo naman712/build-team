@@ -33,6 +33,7 @@ export default function Auth() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
 
   if (authLoading) {
     return (
@@ -124,6 +125,27 @@ export default function Auth() {
               .from('profiles')
               .update({ name, phone })
               .eq('user_id', data.user!.id);
+
+            // Handle referral code if provided
+            if (referralCode.trim()) {
+              const { data: referrerProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('referral_code', referralCode.trim().toUpperCase())
+                .maybeSingle();
+
+              if (referrerProfile) {
+                await supabase
+                  .from('referrals')
+                  .insert({
+                    referrer_id: referrerProfile.id,
+                    referred_id: existingProfile.id,
+                    status: 'pending',
+                    profile_completed: false,
+                    post_created: false,
+                  });
+              }
+            }
           }
         };
 
@@ -142,6 +164,7 @@ export default function Auth() {
     setPhone('');
     setEmail('');
     setPassword('');
+    setReferralCode('');
   };
 
   return (
@@ -237,6 +260,18 @@ export default function Auth() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-referral">Referral Code (Optional)</Label>
+                  <Input
+                    id="signup-referral"
+                    type="text"
+                    placeholder="e.g. FNA1B2C3"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    disabled={isLoading}
+                    maxLength={10}
                   />
                 </div>
                 <div className="space-y-2">
