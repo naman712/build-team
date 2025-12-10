@@ -235,7 +235,7 @@ export default function Onboarding() {
           toast.success('Profile updated successfully!');
           navigate('/profile');
         } else {
-          toast.success('Profile completed! Welcome to FounderHive!');
+          toast.success('Profile completed! Welcome to FounderNow!');
           navigate('/discover');
         }
       }
@@ -259,7 +259,7 @@ export default function Onboarding() {
               <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="font-bold text-foreground">FounderHive</span>
+              <span className="font-bold text-foreground">FounderNow</span>
             </div>
             <span className="text-sm text-muted-foreground">Step {currentStep} of 5</span>
           </div>
