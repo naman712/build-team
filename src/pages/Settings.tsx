@@ -41,8 +41,8 @@ export default function Settings() {
     {
       icon: HelpCircle,
       label: "Help & Support",
-      onClick: () => window.location.href = "mailto:support@foundernow.in",
-      description: "support@foundernow.in",
+      onClick: () => window.location.href = "mailto:naman@foundernow.in",
+      description: "naman@foundernow.in",
     },
   ];
 
