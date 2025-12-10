@@ -314,6 +314,7 @@ export type Database = {
           profile_completed: boolean | null
           referral_code: string | null
           startup_name: string | null
+          successful_referrals: number | null
           updated_at: string | null
           user_id: string
         }
@@ -336,6 +337,7 @@ export type Database = {
           profile_completed?: boolean | null
           referral_code?: string | null
           startup_name?: string | null
+          successful_referrals?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -358,6 +360,7 @@ export type Database = {
           profile_completed?: boolean | null
           referral_code?: string | null
           startup_name?: string | null
+          successful_referrals?: number | null
           updated_at?: string | null
           user_id?: string
         }
