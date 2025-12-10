@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
   Edit2, Settings, LogOut, Lightbulb, Heart, Plus, Loader2, Bell,
-  FileText
+  FileText, Phone, Mail, Building2, Video
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -235,6 +235,60 @@ export default function Profile() {
 
           {activeTab === "profile" ? (
             <>
+              {/* Contact Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-primary" />
+                    Contact Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">{profile.email || "Email not set"}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">{profile.phone || "Phone not set"}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Startup Name */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-primary" />
+                    Startup Name
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    {profile.startup_name || "No startup name added yet"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Intro Video */}
+              {profile.intro_video_url && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Video className="w-5 h-5 text-primary" />
+                      Intro Video
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <video
+                      src={profile.intro_video_url}
+                      controls
+                      className="w-full rounded-lg max-h-64"
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Looking For */}
               {profile.looking_for && (
                 <Card>
