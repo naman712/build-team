@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
   Edit2, Lightbulb, Heart, Plus, Loader2, Bell,
-  FileText, Phone, Mail, Building2, Video, Gift
+  FileText, Phone, Mail, Building2, Video
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -22,7 +22,7 @@ import { EducationDialog } from "@/components/profile/EducationDialog";
 import { PostEditDialog } from "@/components/profile/PostEditDialog";
 import { PostDetailDialog } from "@/components/profile/PostDetailDialog";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
-import { ReferralDialog } from "@/components/profile/ReferralDialog";
+
 import { NotificationButton } from "@/components/NotificationProvider";
 import { formatDistanceToNow } from "date-fns";
 
@@ -224,12 +224,6 @@ export default function Profile() {
                     <FileText className="w-4 h-4" />
                     My Posts ({posts.length})
                   </Button>
-                  <ReferralDialog referralCode={profile.referral_code} profileId={profile.id}>
-                    <Button variant="outline" className="gap-2">
-                      <Gift className="w-4 h-4" />
-                      Refer
-                    </Button>
-                  </ReferralDialog>
                 </div>
               </div>
             </div>
