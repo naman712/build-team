@@ -234,9 +234,14 @@ export default function Landing() {
               <img src={logo} alt="FounderNow" className="w-8 h-8 rounded-lg object-contain" />
               <span className="font-semibold text-foreground">FounderNow</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              © 2024 FounderNow. All rights reserved.
-            </p>
+            <div className="flex items-center gap-6">
+              <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Contact Us
+              </Link>
+              <p className="text-sm text-muted-foreground">
+                © 2024 FounderNow. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>

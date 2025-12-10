@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/discover" element={<ProtectedRoute><RequireCompleteProfile><Discover /></RequireCompleteProfile></ProtectedRoute>} />
               <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
