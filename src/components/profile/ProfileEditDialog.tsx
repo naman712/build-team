@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Camera, Plus, X, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Camera, Plus, X, Loader2, Briefcase, GraduationCap, Trash2, Video } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,36 +14,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
+type Experience = Tables<"experiences">;
+type Education = Tables<"education">;
 
 interface ProfileEditDialogProps {
   profile: Profile;
   onSuccess: () => void;
   children: React.ReactNode;
 }
-
-const LOOKING_FOR_OPTIONS = [
-  "Technical Co-founder",
-  "Business Co-founder",
-  "Marketing Co-founder",
-  "Design Co-founder",
-  "Operations Co-founder",
-  "Any Co-founder",
-  "Team Members",
-  "Mentors",
-  "Investors",
-];
 
 const INTEREST_OPTIONS = [
   "AI/ML",
@@ -73,7 +57,9 @@ export function ProfileEditDialog({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [photoUrl, setPhotoUrl] = useState(profile.photo_url || "");
@@ -90,6 +76,28 @@ export function ProfileEditDialog({
   const [startupName, setStartupName] = useState(profile.startup_name || "");
   const [links, setLinks] = useState<string[]>(profile.links || []);
   const [newLink, setNewLink] = useState("");
+  const [introVideoUrl, setIntroVideoUrl] = useState(profile.intro_video_url || "");
+
+  // Experience & Education state
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [education, setEducation] = useState<Education[]>([]);
+  const [newExp, setNewExp] = useState({ role: "", company: "", duration: "" });
+  const [newEdu, setNewEdu] = useState({ degree: "", school: "", year: "" });
+
+  useEffect(() => {
+    if (open) {
+      fetchExperienceAndEducation();
+    }
+  }, [open]);
+
+  const fetchExperienceAndEducation = async () => {
+    const [expRes, eduRes] = await Promise.all([
+      supabase.from("experiences").select("*").eq("profile_id", profile.id),
+      supabase.from("education").select("*").eq("profile_id", profile.id),
+    ]);
+    setExperiences(expRes.data || []);
+    setEducation(eduRes.data || []);
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,6 +128,40 @@ export function ProfileEditDialog({
     }
   };
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Video must be less than 50MB");
+      return;
+    }
+
+    setUploadingVideo(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${profile.user_id}/intro-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      setIntroVideoUrl(urlData.publicUrl);
+      toast.success("Video uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      toast.error("Failed to upload video");
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
   const toggleInterest = (interest: string) => {
     setInterests((prev) =>
       prev.includes(interest)
@@ -137,6 +179,56 @@ export function ProfileEditDialog({
 
   const removeLink = (link: string) => {
     setLinks(links.filter((l) => l !== link));
+  };
+
+  // Experience handlers
+  const addExperience = async () => {
+    if (!newExp.role.trim() || !newExp.company.trim()) {
+      toast.error("Role and company are required");
+      return;
+    }
+    const { error } = await supabase.from("experiences").insert({
+      profile_id: profile.id,
+      role: newExp.role,
+      company: newExp.company,
+      duration: newExp.duration || null,
+    });
+    if (error) {
+      toast.error("Failed to add experience");
+    } else {
+      setNewExp({ role: "", company: "", duration: "" });
+      fetchExperienceAndEducation();
+    }
+  };
+
+  const deleteExperience = async (id: string) => {
+    const { error } = await supabase.from("experiences").delete().eq("id", id);
+    if (!error) fetchExperienceAndEducation();
+  };
+
+  // Education handlers
+  const addEducation = async () => {
+    if (!newEdu.degree.trim() || !newEdu.school.trim()) {
+      toast.error("Degree and school are required");
+      return;
+    }
+    const { error } = await supabase.from("education").insert({
+      profile_id: profile.id,
+      degree: newEdu.degree,
+      school: newEdu.school,
+      year: newEdu.year || null,
+    });
+    if (error) {
+      toast.error("Failed to add education");
+    } else {
+      setNewEdu({ degree: "", school: "", year: "" });
+      fetchExperienceAndEducation();
+    }
+  };
+
+  const deleteEducation = async (id: string) => {
+    const { error } = await supabase.from("education").delete().eq("id", id);
+    if (!error) fetchExperienceAndEducation();
   };
 
   const handleSubmit = async () => {
@@ -158,6 +250,7 @@ export function ProfileEditDialog({
           interests: interests,
           startup_name: startupName || null,
           links: links,
+          intro_video_url: introVideoUrl || null,
         })
         .eq("id", profile.id);
 
@@ -293,21 +386,16 @@ export function ProfileEditDialog({
               />
             </div>
 
-            {/* Looking For */}
+            {/* Looking For - Now Textarea */}
             <div className="space-y-2">
-              <Label>Looking For *</Label>
-              <Select value={lookingFor} onValueChange={setLookingFor}>
-                <SelectTrigger>
-                  <SelectValue placeholder="What are you looking for?" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LOOKING_FOR_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="lookingFor">Looking For *</Label>
+              <Textarea
+                id="lookingFor"
+                value={lookingFor}
+                onChange={(e) => setLookingFor(e.target.value)}
+                placeholder="Describe what kind of co-founder, team member, or collaborator you're looking for..."
+                rows={3}
+              />
             </div>
 
             {/* About Me */}
@@ -331,6 +419,61 @@ export function ProfileEditDialog({
                 onChange={(e) => setMyIdea(e.target.value)}
                 placeholder="Describe your startup idea..."
                 rows={3}
+              />
+            </div>
+
+            {/* Intro Video */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Video className="w-4 h-4" />
+                Intro Video (Optional)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Upload a short video about your startup idea (max 50MB)
+              </p>
+              {introVideoUrl && (
+                <div className="relative rounded-lg overflow-hidden bg-muted">
+                  <video
+                    src={introVideoUrl}
+                    controls
+                    className="w-full max-h-48 object-contain"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 w-6 h-6"
+                    onClick={() => setIntroVideoUrl("")}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploadingVideo}
+                className="w-full"
+              >
+                {uploadingVideo ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Video className="w-4 h-4 mr-2" />
+                    {introVideoUrl ? "Replace Video" : "Upload Video"}
+                  </>
+                )}
+              </Button>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={handleVideoUpload}
               />
             </div>
 
@@ -382,6 +525,116 @@ export function ProfileEditDialog({
                   ))}
                 </div>
               )}
+            </div>
+
+            <Separator />
+
+            {/* Experience Section */}
+            <div className="space-y-4">
+              <Label className="flex items-center gap-2 text-base font-semibold">
+                <Briefcase className="w-5 h-5" />
+                Experience
+              </Label>
+              
+              {experiences.map((exp) => (
+                <div key={exp.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">{exp.role}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {exp.company} {exp.duration && `• ${exp.duration}`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteExperience(exp.id)}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+
+              <div className="space-y-3 p-3 border border-dashed rounded-lg">
+                <p className="text-sm font-medium">Add New Experience</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="Role *"
+                    value={newExp.role}
+                    onChange={(e) => setNewExp({ ...newExp, role: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Company *"
+                    value={newExp.company}
+                    onChange={(e) => setNewExp({ ...newExp, company: e.target.value })}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Duration (e.g. 2020 - Present)"
+                    value={newExp.duration}
+                    onChange={(e) => setNewExp({ ...newExp, duration: e.target.value })}
+                  />
+                  <Button type="button" onClick={addExperience}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Education Section */}
+            <div className="space-y-4">
+              <Label className="flex items-center gap-2 text-base font-semibold">
+                <GraduationCap className="w-5 h-5" />
+                Education
+              </Label>
+              
+              {education.map((edu) => (
+                <div key={edu.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">{edu.degree}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {edu.school} {edu.year && `• ${edu.year}`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteEducation(edu.id)}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+
+              <div className="space-y-3 p-3 border border-dashed rounded-lg">
+                <p className="text-sm font-medium">Add New Education</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="Degree *"
+                    value={newEdu.degree}
+                    onChange={(e) => setNewEdu({ ...newEdu, degree: e.target.value })}
+                  />
+                  <Input
+                    placeholder="School *"
+                    value={newEdu.school}
+                    onChange={(e) => setNewEdu({ ...newEdu, school: e.target.value })}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Year (e.g. 2020)"
+                    value={newEdu.year}
+                    onChange={(e) => setNewEdu({ ...newEdu, year: e.target.value })}
+                  />
+                  <Button type="button" onClick={addEducation}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </ScrollArea>
