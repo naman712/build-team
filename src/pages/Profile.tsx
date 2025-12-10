@@ -163,15 +163,7 @@ export default function Profile() {
             className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden"
           >
             {/* Cover */}
-            <div className="h-32 bg-gradient-primary relative">
-              <Button
-                variant="glass"
-                size="icon"
-                className="absolute top-4 right-4"
-              >
-                <Camera className="w-4 h-4" />
-              </Button>
-            </div>
+            <div className="h-20 bg-gradient-primary" />
             
             {/* Avatar & Basic Info */}
             <div className="px-6 pb-6">
