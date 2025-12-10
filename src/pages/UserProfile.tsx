@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
   Lightbulb, Heart, ArrowLeft, UserPlus, MessageCircle,
-  Mail, Phone
+  Mail, Phone, Video
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -246,6 +246,25 @@ export default function UserProfile() {
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <span>{viewedProfile.phone}</span>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Intro Video */}
+          {viewedProfile.intro_video_url && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Video className="w-5 h-5 text-primary" />
+                  Intro Video
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <video
+                  src={viewedProfile.intro_video_url}
+                  controls
+                  className="w-full rounded-lg max-h-64"
+                />
               </CardContent>
             </Card>
           )}
