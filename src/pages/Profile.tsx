@@ -22,6 +22,7 @@ import { ExperienceDialog } from "@/components/profile/ExperienceDialog";
 import { EducationDialog } from "@/components/profile/EducationDialog";
 import { PostEditDialog } from "@/components/profile/PostEditDialog";
 import { PostDetailDialog } from "@/components/profile/PostDetailDialog";
+import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { NotificationButton } from "@/components/NotificationProvider";
 import { formatDistanceToNow } from "date-fns";
 
@@ -212,14 +213,15 @@ export default function Profile() {
               {/* Tabs for Edit Profile and My Posts */}
               <div className="mt-6">
                 <div className="flex gap-2">
-                  <Button 
-                    variant={activeTab === "profile" ? "default" : "outline"}
-                    className="flex-1 gap-2"
-                    onClick={() => navigate('/onboarding?edit=true')}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit Profile
-                  </Button>
+                  <ProfileEditDialog profile={profile} onSuccess={fetchData}>
+                    <Button 
+                      variant={activeTab === "profile" ? "default" : "outline"}
+                      className="flex-1 gap-2"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit Profile
+                    </Button>
+                  </ProfileEditDialog>
                   <Button 
                     variant={activeTab === "posts" ? "default" : "outline"}
                     className="flex-1 gap-2"
