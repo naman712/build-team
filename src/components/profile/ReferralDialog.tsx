@@ -41,11 +41,9 @@ export function ReferralDialog({ referralCode, profileId, children }: ReferralDi
   const handleCopy = async () => {
     if (!referralCode) return;
     
-    const shareMessage = `Join FounderNow and find your perfect co-founder! Use my referral code: ${referralCode}\n\nSign up at: https://foundernow.in/auth`;
-    
-    await navigator.clipboard.writeText(shareMessage);
+    await navigator.clipboard.writeText(referralCode);
     setCopied(true);
-    toast.success("Referral message copied!");
+    toast.success("Referral code copied!");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -125,7 +123,15 @@ export function ReferralDialog({ referralCode, profileId, children }: ReferralDi
           </div>
 
           {/* Share Button */}
-          <Button className="w-full" onClick={handleCopy} disabled={!referralCode}>
+          <Button 
+            className="w-full" 
+            onClick={async () => {
+              const shareMessage = `Join FounderNow and find your perfect co-founder! Use my referral code: ${referralCode}\n\nSign up at: https://foundernow.in/auth`;
+              await navigator.clipboard.writeText(shareMessage);
+              toast.success("Referral message copied!");
+            }} 
+            disabled={!referralCode}
+          >
             <Copy className="w-4 h-4 mr-2" />
             Copy Referral Message
           </Button>
