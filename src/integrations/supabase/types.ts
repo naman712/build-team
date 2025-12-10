@@ -312,6 +312,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           profile_completed: boolean | null
+          referral_code: string | null
           startup_name: string | null
           updated_at: string | null
           user_id: string
@@ -333,6 +334,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           profile_completed?: boolean | null
+          referral_code?: string | null
           startup_name?: string | null
           updated_at?: string | null
           user_id: string
@@ -354,11 +356,60 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           profile_completed?: boolean | null
+          referral_code?: string | null
           startup_name?: string | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: []
+      }
+      referrals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          post_created: boolean | null
+          profile_completed: boolean | null
+          referred_id: string
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          post_created?: boolean | null
+          profile_completed?: boolean | null
+          referred_id: string
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          post_created?: boolean | null
+          profile_completed?: boolean | null
+          referred_id?: string
+          referrer_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -370,6 +421,10 @@ export type Database = {
         Returns: boolean
       }
       get_profile_id: { Args: { user_uuid: string }; Returns: string }
+      get_successful_referral_count: {
+        Args: { profile_uuid: string }
+        Returns: number
+      }
       is_profile_complete: { Args: { profile_uuid: string }; Returns: boolean }
     }
     Enums: {
