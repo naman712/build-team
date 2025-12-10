@@ -3,18 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
-  Edit2, Settings, LogOut, Lightbulb, Heart, Plus, Loader2, Bell,
+  Edit2, Lightbulb, Heart, Plus, Loader2, Bell,
   FileText, Phone, Mail, Building2, Video, Gift
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { useProfile } from "@/hooks/useProfile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +49,6 @@ interface Post {
 }
 
 export default function Profile() {
-  const { signOut } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
   const [experiences, setExperiences] = useState<Experience[]>([]);
@@ -101,11 +99,6 @@ export default function Profile() {
     fetchData();
   }, [fetchData]);
 
-  const handleLogout = async () => {
-    await signOut();
-    toast.success("Logged out successfully");
-    navigate("/");
-  };
 
   const calculateProfileCompletion = () => {
     if (!profile) return 0;
@@ -531,24 +524,6 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Settings */}
-          <Card>
-            <CardContent className="p-4 space-y-2">
-              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => navigate('/settings')}>
-                <Settings className="w-5 h-5" />
-                Settings
-              </Button>
-              <Separator />
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start gap-3 text-destructive hover:text-destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-5 h-5" />
-                Log Out
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </main>
 

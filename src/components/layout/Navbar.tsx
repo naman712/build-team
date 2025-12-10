@@ -1,11 +1,18 @@
-import { Link, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home, Users, MessageCircle, Compass, Bell, User } from "lucide-react";
+import { Home, Users, MessageCircle, Compass, Bell, User, Menu, Gift, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { triggerHaptic } from "@/hooks/useHapticFeedback";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { ReferralDialog } from "@/components/profile/ReferralDialog";
+import { toast } from "sonner";
 import logoImage from "@/assets/logo.png";
 
 const navItems = [
@@ -16,8 +23,11 @@ const navItems = [
 
 export function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const unreadCounts = useUnreadCounts();
   const { profile } = useProfile();
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const getBadgeCount = (badgeKey: "connections" | null) => {
     if (!badgeKey) return 0;
@@ -30,19 +40,84 @@ export function Navbar() {
     triggerHaptic('selection');
   };
 
+  const handleLogout = async () => {
+    setSheetOpen(false);
+    await signOut();
+    toast.success("Logged out successfully");
+    navigate("/");
+  };
+
+  const handleMenuItemClick = (path: string) => {
+    triggerHaptic('selection');
+    setSheetOpen(false);
+    navigate(path);
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-14">
-          {/* Left: Profile */}
-          <Link to="/profile" className="hover:opacity-90 transition-opacity" onClick={handleNavClick}>
-            <Avatar className="w-9 h-9 ring-2 ring-primary/30">
-              <AvatarImage src={profile?.photo_url || ""} alt={profile?.name || "Profile"} />
-              <AvatarFallback className="bg-gradient-primary text-primary-foreground text-sm font-semibold">
-                {profile?.name?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
+          {/* Left: Hamburger Menu */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="hover:bg-muted" onClick={() => triggerHaptic('selection')}>
+                <Menu className="w-6 h-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <div className="flex flex-col h-full">
+                {/* Profile Section */}
+                <div 
+                  className="p-6 bg-gradient-primary cursor-pointer"
+                  onClick={() => handleMenuItemClick('/profile')}
+                >
+                  <Avatar className="w-16 h-16 ring-2 ring-white/30 mb-3">
+                    <AvatarImage src={profile?.photo_url || ""} alt={profile?.name || "Profile"} />
+                    <AvatarFallback className="bg-white/20 text-white text-xl font-semibold">
+                      {profile?.name?.[0]?.toUpperCase() || <User className="w-6 h-6" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h3 className="text-lg font-semibold text-white">{profile?.name || "Your Name"}</h3>
+                  <p className="text-sm text-white/70">My Profile</p>
+                </div>
+
+                {/* Menu Items */}
+                <div className="flex-1 p-4 space-y-1">
+                  <ReferralDialog referralCode={profile?.referral_code} profileId={profile?.id || ""}>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start gap-3 h-12 text-base"
+                      onClick={() => triggerHaptic('selection')}
+                    >
+                      <Gift className="w-5 h-5 text-primary" />
+                      Refer & Get ₹250
+                    </Button>
+                  </ReferralDialog>
+
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start gap-3 h-12 text-base"
+                    onClick={() => handleMenuItemClick('/settings')}
+                  >
+                    <Settings className="w-5 h-5 text-muted-foreground" />
+                    Account Settings
+                  </Button>
+                </div>
+
+                {/* Logout */}
+                <div className="p-4 border-t">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start gap-3 h-12 text-base text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Logout
+                  </Button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
 
           {/* Center: Navigation Items */}
           <nav className="flex items-center gap-3 sm:gap-6">
