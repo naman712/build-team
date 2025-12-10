@@ -133,7 +133,7 @@ export function ShareDialog({ open, onOpenChange, postId, postContent }: ShareDi
   };
 
   const handleEmailShare = () => {
-    const subject = encodeURIComponent("Check out this post on FounderHive");
+    const subject = encodeURIComponent("Check out this post on FounderNow");
     const body = encodeURIComponent(`${shareText}\n\n${shareUrl}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
     onOpenChange(false);
@@ -143,7 +143,7 @@ export function ShareDialog({ open, onOpenChange, postId, postContent }: ShareDi
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "FounderHive Post",
+          title: "FounderNow Post",
           text: shareText,
           url: shareUrl,
         });
