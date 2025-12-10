@@ -4,6 +4,7 @@ import { ArrowRight, Users, MessageCircle, Lightbulb, Rocket, Star } from "lucid
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import logo from "@/assets/logo.png";
 
 const features = [
   {
@@ -38,9 +39,7 @@ export default function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-50 glass">
         <div className="container mx-auto px-4 h-18 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">F</span>
-            </div>
+            <img src={logo} alt="FounderNow" className="w-10 h-10 rounded-xl object-contain" />
             <span className="font-bold text-xl text-foreground">FounderNow</span>
           </Link>
           
@@ -232,9 +231,7 @@ export default function Landing() {
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">F</span>
-              </div>
+              <img src={logo} alt="FounderNow" className="w-8 h-8 rounded-lg object-contain" />
               <span className="font-semibold text-foreground">FounderNow</span>
             </div>
             <p className="text-sm text-muted-foreground">
