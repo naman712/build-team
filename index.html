@@ -35,7 +35,7 @@
     <meta name="theme-color" content="#1A365D" />
     <meta name="application-name" content="FounderNow" />
     
-    <!-- Structured Data -->
+    <!-- Structured Data - WebApplication -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -49,12 +49,95 @@
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "INR"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "500"
       }
+    }
+    </script>
+
+    <!-- Structured Data - Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "FounderNow",
+      "url": "https://foundernow.in",
+      "logo": "https://foundernow.in/logo.png",
+      "description": "India's leading platform for finding co-founders and startup collaborators",
+      "sameAs": [],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "naman@foundernow.in",
+        "contactType": "customer support"
+      }
+    }
+    </script>
+
+    <!-- Structured Data - FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is FounderNow?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "FounderNow is India's leading co-founder matching platform that helps entrepreneurs, founders, and builders discover compatible co-founders and startup collaborators through smart matching algorithms."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does FounderNow work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Create your profile sharing your skills and startup ideas, browse through curated founder profiles, and connect with potential co-founders through our direct messaging system."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is FounderNow free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, FounderNow is completely free to use. You can create a profile, browse potential co-founders, and connect with matches at no cost."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who can use FounderNow?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "FounderNow is designed for entrepreneurs, startup founders, technical experts, business professionals, and student innovators looking to find co-founders or join exciting startup ventures."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Structured Data - BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://foundernow.in"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Find Co-Founders",
+          "item": "https://foundernow.in/discover"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Startup Feed",
+          "item": "https://foundernow.in/feed"
+        }
+      ]
     }
     </script>
   </head>

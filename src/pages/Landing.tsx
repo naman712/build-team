@@ -196,6 +196,57 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="py-20 px-4 bg-gradient-warm" aria-labelledby="faq-heading">
+        <div className="container mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 id="faq-heading" className="text-4xl font-bold mb-4">Frequently Asked Questions</h2>
+            <p className="text-xl text-muted-foreground">Everything you need to know about FounderNow</p>
+          </motion.div>
+
+          <div className="space-y-4">
+            {[
+              {
+                q: "What is FounderNow?",
+                a: "FounderNow is India's leading co-founder matching platform that helps entrepreneurs, founders, and builders discover compatible co-founders and startup collaborators through smart matching algorithms."
+              },
+              {
+                q: "How does FounderNow work?",
+                a: "Create your profile sharing your skills and startup ideas, browse through curated founder profiles, and connect with potential co-founders through our direct messaging system."
+              },
+              {
+                q: "Is FounderNow free to use?",
+                a: "Yes, FounderNow is completely free to use. You can create a profile, browse potential co-founders, and connect with matches at no cost."
+              },
+              {
+                q: "Who can use FounderNow?",
+                a: "FounderNow is designed for entrepreneurs, startup founders, technical experts, business professionals, and student innovators looking to find co-founders or join exciting startup ventures."
+              }
+            ].map((faq, index) => (
+              <motion.details
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-card rounded-2xl p-6 shadow-card border border-border/50 group"
+              >
+                <summary className="text-lg font-semibold cursor-pointer list-none flex items-center justify-between">
+                  {faq.q}
+                  <span className="text-primary transition-transform group-open:rotate-180">▼</span>
+                </summary>
+                <p className="mt-4 text-muted-foreground">{faq.a}</p>
+              </motion.details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
