@@ -193,6 +193,9 @@ export default function UserProfile() {
                 
                 <div className="flex-1 text-center sm:text-left">
                   <h1 className="text-2xl font-bold">{viewedProfile.name}, {viewedProfile.age}</h1>
+                  {viewedProfile.startup_name && (
+                    <p className="text-primary font-medium">{viewedProfile.startup_name}</p>
+                  )}
                   <p className="text-muted-foreground flex items-center justify-center sm:justify-start gap-1">
                     <MapPin className="w-4 h-4" />
                     {viewedProfile.city}, {viewedProfile.country}
