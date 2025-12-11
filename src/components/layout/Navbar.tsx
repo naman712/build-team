@@ -18,7 +18,7 @@ import logoImage from "@/assets/logo.png";
 
 const navItems = [
   { path: "/feed", icon: Home, label: "Feed", badgeKey: null },
-  { path: "/discover", icon: Compass, label: "Discover", badgeKey: null },
+  { path: "/discover", icon: Compass, label: "Match", badgeKey: null },
   { path: "/connections", icon: Users, label: "Connections", badgeKey: "connections" as const },
 ];
 
