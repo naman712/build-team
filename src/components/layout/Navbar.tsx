@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home, Users, MessageCircle, Compass, Bell, User, Menu, Gift, Settings, LogOut } from "lucide-react";
+import { Home, Users, MessageCircle, Compass, Bell, User, Gift, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 import { useProfile } from "@/hooks/useProfile";
@@ -60,9 +60,17 @@ export function Navbar() {
           {/* Left: Hamburger Menu */}
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-muted" onClick={() => triggerHaptic('selection')}>
-                <Menu className="w-6 h-6" />
-              </Button>
+              <button 
+                className="focus:outline-none hover:opacity-80 transition-opacity" 
+                onClick={() => triggerHaptic('selection')}
+              >
+                <Avatar className="w-9 h-9 ring-2 ring-primary/20 cursor-pointer">
+                  <AvatarImage src={profile?.photo_url || ""} alt={profile?.name || "Profile"} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                    {profile?.name?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[280px] p-0">
               <div className="flex flex-col h-full">
