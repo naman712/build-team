@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MessageCircle, Check, X, MapPin, Briefcase, UserMinus } from "lucide-react";
+import { MessageCircle, Check, X, MapPin, Briefcase, UserMinus, Undo2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ interface ConnectionCardProps {
   onReject?: (id: string) => void;
   onMessage?: (id: string) => void;
   onRemove?: (id: string) => void;
+  onWithdraw?: (id: string) => void;
 }
 
 export function ConnectionCard({
@@ -30,6 +31,7 @@ export function ConnectionCard({
   onReject,
   onMessage,
   onRemove,
+  onWithdraw,
 }: ConnectionCardProps) {
   const navigate = useNavigate();
 
@@ -147,8 +149,14 @@ export function ConnectionCard({
         )}
         
         {connection.status === "pending_sent" && (
-          <Button variant="secondary" size="sm" className="w-full" disabled>
-            Awaiting Response
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={() => onWithdraw?.(connection.id)}
+          >
+            <Undo2 className="w-4 h-4" />
+            Withdraw Request
           </Button>
         )}
       </div>

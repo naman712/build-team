@@ -197,6 +197,26 @@ export default function Connections() {
     fetchConnections();
   };
 
+  const handleWithdraw = async (connectionId: string) => {
+    triggerHaptic('medium');
+    const connection = connections.find((c) => c.id === connectionId);
+    const otherProfile = connection ? getOtherProfile(connection) : null;
+
+    const { error } = await supabase
+      .from('connections')
+      .delete()
+      .eq('id', connectionId);
+
+    if (error) {
+      console.error('Error withdrawing request:', error);
+      toast.error("Failed to withdraw request");
+      return;
+    }
+
+    toast.success(`Withdrew request to ${otherProfile?.name}`);
+    fetchConnections();
+  };
+
   const handleMessage = (connectionId: string) => {
     triggerHaptic('selection');
     navigate(`/messages?connection=${connectionId}`);
@@ -346,6 +366,7 @@ export default function Connections() {
                         lookingFor: otherProfile.looking_for || "",
                         status: "pending_sent",
                       }}
+                      onWithdraw={handleWithdraw}
                     />
                   );
                 })
