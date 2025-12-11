@@ -60,9 +60,12 @@ export function Navbar() {
           {/* Left: Hamburger Menu */}
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
-              <button 
-                className="focus:outline-none hover:opacity-80 transition-opacity" 
+              <motion.button 
+                className="focus:outline-none" 
                 onClick={() => triggerHaptic('selection')}
+                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
                 <Avatar className="w-9 h-9 ring-2 ring-primary/20 cursor-pointer">
                   <AvatarImage src={profile?.photo_url || ""} alt={profile?.name || "Profile"} />
@@ -70,7 +73,7 @@ export function Navbar() {
                     {profile?.name?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
                   </AvatarFallback>
                 </Avatar>
-              </button>
+              </motion.button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[280px] p-0">
               <div className="flex flex-col h-full">
