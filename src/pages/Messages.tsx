@@ -412,7 +412,7 @@ export default function Messages() {
         <Navbar />
         
         <main className="container mx-auto px-4 py-6">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -440,7 +440,7 @@ export default function Messages() {
       <Navbar />
       
       <main className="fixed top-14 bottom-16 md:bottom-0 left-0 right-0 px-2 sm:px-4 py-2 overflow-hidden">
-        <div className="max-w-5xl mx-auto h-full flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
+        <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto h-full flex rounded-2xl overflow-hidden border border-border bg-card shadow-card">
           {/* Chat List */}
           <div className={cn(
             "w-full md:w-80 lg:w-96 border-r border-border flex flex-col",
