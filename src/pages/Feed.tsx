@@ -365,7 +365,7 @@ export default function Feed() {
       <div className="min-h-screen bg-background pb-4 pt-16 md:pt-20">
         <Navbar />
         <main className="container mx-auto px-4 py-4 sm:py-6">
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto space-y-4">
             <Button
               variant="ghost"
               size="sm"
@@ -442,7 +442,7 @@ export default function Feed() {
           transition: pullDistance === 0 ? 'transform 0.3s ease' : 'none',
         }}
       >
-        <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
+        <div className="max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto space-y-4 sm:space-y-6">
           {isProfileComplete && <CreatePost onPost={handleNewPost} />}
           
           {posts.length === 0 ? (
