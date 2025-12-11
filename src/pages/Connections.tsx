@@ -222,7 +222,7 @@ export default function Connections() {
       <Navbar />
       
       <main className="container mx-auto px-4 py-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
