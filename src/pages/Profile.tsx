@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
   Edit2, Lightbulb, Heart, Plus, Loader2, Bell,
-  FileText, Phone, Mail, Building2, Video
+  FileText, Phone, Mail, Building2, Video, Flame
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -22,6 +22,7 @@ import { EducationDialog } from "@/components/profile/EducationDialog";
 import { PostEditDialog } from "@/components/profile/PostEditDialog";
 import { PostDetailDialog } from "@/components/profile/PostDetailDialog";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
+import { StreakBadge } from "@/components/StreakBadge";
 
 import { NotificationButton } from "@/components/NotificationProvider";
 import { formatDistanceToNow } from "date-fns";
@@ -190,8 +191,30 @@ export default function Profile() {
                 </div>
               </div>
 
+              {/* Streak Card */}
+              <div className="mt-6 p-4 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-xl border border-orange-500/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center">
+                      <Flame className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Current Streak</p>
+                      <p className="text-2xl font-bold">{profile.current_streak || 0} days</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Best Streak</p>
+                    <p className="text-lg font-semibold text-primary">{profile.longest_streak || 0} days</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Post daily about your startup journey to build your streak! 🔥
+                </p>
+              </div>
+
               {/* Profile Completion */}
-              <div className="mt-6 p-4 bg-secondary/50 rounded-xl">
+              <div className="mt-4 p-4 bg-secondary/50 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Profile Completion</span>
                   <span className="text-sm text-primary font-semibold">{profileCompletion}%</span>

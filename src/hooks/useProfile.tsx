@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -9,6 +9,20 @@ export function useProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const updateStreak = useCallback(async (profileId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('update_user_streak', {
+        profile_uuid: profileId
+      });
+      if (error) {
+        console.error('Error updating streak:', error);
+      }
+      return data;
+    } catch (err) {
+      console.error('Error updating streak:', err);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -27,7 +41,12 @@ export function useProfile() {
       if (error) {
         console.error('Error fetching profile:', error);
       }
-      setProfile(data);
+      
+      if (data) {
+        setProfile(data);
+        // Update streak on login
+        updateStreak(data.id);
+      }
       setLoading(false);
     };
 
@@ -55,7 +74,7 @@ export function useProfile() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, updateStreak]);
 
   const isProfileComplete = profile?.profile_completed ?? false;
 
@@ -81,5 +100,6 @@ export function useProfile() {
     loading,
     isProfileComplete,
     updateProfile,
+    updateStreak,
   };
 }
