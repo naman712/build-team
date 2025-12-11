@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ReferralDialog } from "@/components/profile/ReferralDialog";
-import { StreakBadge } from "@/components/StreakBadge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import logoImage from "@/assets/logo.png";
 
@@ -133,19 +133,49 @@ export function Navbar() {
             </Sheet>
 
             {/* Streak Badge */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shadow-md",
-                (profile?.current_streak ?? 0) > 0
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
-                  : "bg-muted text-muted-foreground"
-              )}
-            >
-              <Zap className={cn("w-3.5 h-3.5", (profile?.current_streak ?? 0) > 0 && "fill-current")} />
-              <span>{profile?.current_streak ?? 0}</span>
-            </motion.div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold cursor-pointer transition-all",
+                    (profile?.current_streak ?? 0) > 0
+                      ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/40"
+                      : "bg-secondary border border-border text-muted-foreground hover:border-amber-500/50"
+                  )}
+                >
+                  <motion.div
+                    animate={(profile?.current_streak ?? 0) > 0 ? { 
+                      rotate: [0, -10, 10, -10, 0],
+                    } : {}}
+                    transition={{ 
+                      duration: 0.5, 
+                      repeat: Infinity,
+                      repeatDelay: 2
+                    }}
+                  >
+                    <Zap className={cn(
+                      "w-4 h-4",
+                      (profile?.current_streak ?? 0) > 0 ? "fill-current" : ""
+                    )} />
+                  </motion.div>
+                  <span>{profile?.current_streak ?? 0}</span>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-center max-w-[200px]">
+                <p className="font-semibold">
+                  {(profile?.current_streak ?? 0) > 0 
+                    ? `${profile?.current_streak} day streak! ⚡` 
+                    : "Start your streak!"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Post daily to build your streak
+                </p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Center: Navigation Items */}
