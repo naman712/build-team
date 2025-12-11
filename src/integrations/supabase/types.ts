@@ -301,11 +301,14 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string | null
+          current_streak: number | null
           email: string | null
           id: string
           interests: string[] | null
           intro_video_url: string | null
+          last_streak_date: string | null
           links: string[] | null
+          longest_streak: number | null
           looking_for: string | null
           my_idea: string | null
           name: string | null
@@ -324,11 +327,14 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          current_streak?: number | null
           email?: string | null
           id?: string
           interests?: string[] | null
           intro_video_url?: string | null
+          last_streak_date?: string | null
           links?: string[] | null
+          longest_streak?: number | null
           looking_for?: string | null
           my_idea?: string | null
           name?: string | null
@@ -347,11 +353,14 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          current_streak?: number | null
           email?: string | null
           id?: string
           interests?: string[] | null
           intro_video_url?: string | null
+          last_streak_date?: string | null
           links?: string[] | null
+          longest_streak?: number | null
           looking_for?: string | null
           my_idea?: string | null
           name?: string | null
@@ -429,6 +438,7 @@ export type Database = {
         Returns: number
       }
       is_profile_complete: { Args: { profile_uuid: string }; Returns: boolean }
+      update_user_streak: { Args: { profile_uuid: string }; Returns: number }
     }
     Enums: {
       connection_status: "pending" | "accepted" | "rejected"

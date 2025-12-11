@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home, Users, MessageCircle, Compass, Bell, User, Gift, Settings, LogOut } from "lucide-react";
+import { Home, Users, MessageCircle, Compass, Bell, User, Gift, Settings, LogOut, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 import { useProfile } from "@/hooks/useProfile";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ReferralDialog } from "@/components/profile/ReferralDialog";
+import { StreakBadge } from "@/components/StreakBadge";
 import { toast } from "sonner";
 import logoImage from "@/assets/logo.png";
 
@@ -88,8 +89,18 @@ export function Navbar() {
                       {profile?.name?.[0]?.toUpperCase() || <User className="w-6 h-6" />}
                     </AvatarFallback>
                   </Avatar>
-                  <h3 className="text-lg font-semibold text-white">{profile?.name || "Your Name"}</h3>
-                  <p className="text-sm text-white/70">My Profile</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{profile?.name || "Your Name"}</h3>
+                      <p className="text-sm text-white/70">My Profile</p>
+                    </div>
+                    {(profile?.current_streak !== undefined && profile?.current_streak !== null) && (
+                      <div className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-1">
+                        <Flame className="w-4 h-4 text-yellow-300" />
+                        <span className="text-sm font-semibold text-white">{profile.current_streak}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Menu Items */}

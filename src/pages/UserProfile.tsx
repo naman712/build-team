@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
   Lightbulb, Heart, ArrowLeft, UserPlus, MessageCircle,
-  Mail, Phone, Video
+  Mail, Phone, Video, Flame
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -169,7 +169,7 @@ export default function UserProfile() {
       <Navbar />
       
       <main className="container mx-auto px-4 py-6">
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto space-y-6">
           {/* Back Button */}
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -231,6 +231,16 @@ export default function UserProfile() {
                   </div>
                 )}
               </div>
+
+              {/* Streak Display */}
+              {(viewedProfile.current_streak !== undefined && viewedProfile.current_streak !== null && viewedProfile.current_streak > 0) && (
+                <div className="mt-4 flex items-center justify-center sm:justify-start gap-2">
+                  <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white px-3 py-1.5 rounded-full text-sm font-semibold shadow-lg shadow-orange-500/25">
+                    <Flame className="w-4 h-4 text-yellow-200" />
+                    {viewedProfile.current_streak} day streak
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
 
