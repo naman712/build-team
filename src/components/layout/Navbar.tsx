@@ -133,16 +133,19 @@ export function Navbar() {
             </Sheet>
 
             {/* Streak Badge */}
-            {(profile?.current_streak !== undefined && profile?.current_streak !== null && profile.current_streak > 0) && (
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-md"
-              >
-                <Zap className="w-3.5 h-3.5 fill-current" />
-                <span>{profile.current_streak}</span>
-              </motion.div>
-            )}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shadow-md",
+                (profile?.current_streak ?? 0) > 0
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              <Zap className={cn("w-3.5 h-3.5", (profile?.current_streak ?? 0) > 0 && "fill-current")} />
+              <span>{profile?.current_streak ?? 0}</span>
+            </motion.div>
           </div>
 
           {/* Center: Navigation Items */}
