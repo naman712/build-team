@@ -306,13 +306,18 @@ export default function Connections() {
               <TabsTrigger value="received" className="relative text-xs sm:text-sm px-2 sm:px-3">
                 <span className="hidden sm:inline">Requests</span>
                 <span className="sm:hidden">Reqs</span>
+                <span className="ml-1">({pendingReceived.length})</span>
                 {pendingReceived.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-primary text-primary-foreground text-[10px] sm:text-xs rounded-full flex items-center justify-center">
                     {pendingReceived.length}
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="sent" className="text-xs sm:text-sm px-2 sm:px-3">Sent</TabsTrigger>
+              <TabsTrigger value="sent" className="text-xs sm:text-sm px-2 sm:px-3">
+                <span className="hidden sm:inline">Sent</span>
+                <span className="sm:hidden">Sent</span>
+                <span className="ml-1">({pendingSent.length})</span>
+              </TabsTrigger>
               <TabsTrigger value="connected" className="text-xs sm:text-sm px-2 sm:px-3">
                 <span className="hidden sm:inline">Connected</span>
                 <span className="sm:hidden">Conn</span>
