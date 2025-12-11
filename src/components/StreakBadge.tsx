@@ -1,4 +1,4 @@
-import { Flame } from "lucide-react";
+import { Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -45,7 +45,7 @@ export function StreakBadge({
         "inline-flex items-center rounded-full font-semibold transition-colors",
         sizeClasses[size],
         isActive 
-          ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25" 
+          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25" 
           : "bg-muted text-muted-foreground",
         className
       )}
@@ -60,7 +60,7 @@ export function StreakBadge({
           repeatType: "reverse" 
         }}
       >
-        <Flame className={cn(iconSizes[size], isActive && "text-yellow-200")} />
+        <Zap className={cn(iconSizes[size], isActive && "fill-current")} />
       </motion.div>
       <span>{streak}</span>
     </motion.div>

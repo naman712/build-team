@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home, Users, MessageCircle, Compass, Bell, User, Gift, Settings, LogOut, Flame } from "lucide-react";
+import { Home, Users, MessageCircle, Compass, Bell, User, Gift, Settings, LogOut, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 import { useProfile } from "@/hooks/useProfile";
@@ -58,88 +58,92 @@ export function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-14">
-          {/* Left: Hamburger Menu */}
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <motion.button 
-                className="focus:outline-none" 
-                onClick={() => triggerHaptic('selection')}
-                whileTap={{ scale: 0.9 }}
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              >
-                <Avatar className="w-9 h-9 ring-2 ring-primary/20 cursor-pointer">
-                  <AvatarImage src={profile?.photo_url || ""} alt={profile?.name || "Profile"} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                    {profile?.name?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
-                  </AvatarFallback>
-                </Avatar>
-              </motion.button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[280px] p-0">
-              <div className="flex flex-col h-full">
-                {/* Profile Section */}
-                <div 
-                  className="p-6 bg-gradient-primary cursor-pointer"
-                  onClick={() => handleMenuItemClick('/profile')}
+          {/* Left: Profile Pic + Streak */}
+          <div className="flex items-center gap-2">
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <motion.button 
+                  className="focus:outline-none" 
+                  onClick={() => triggerHaptic('selection')}
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <Avatar className="w-16 h-16 ring-2 ring-white/30 mb-3">
+                  <Avatar className="w-9 h-9 ring-2 ring-primary/20 cursor-pointer">
                     <AvatarImage src={profile?.photo_url || ""} alt={profile?.name || "Profile"} />
-                    <AvatarFallback className="bg-white/20 text-white text-xl font-semibold">
-                      {profile?.name?.[0]?.toUpperCase() || <User className="w-6 h-6" />}
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                      {profile?.name?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{profile?.name || "Your Name"}</h3>
-                      <p className="text-sm text-white/70">My Profile</p>
-                    </div>
-                    {(profile?.current_streak !== undefined && profile?.current_streak !== null) && (
-                      <div className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-1">
-                        <Flame className="w-4 h-4 text-yellow-300" />
-                        <span className="text-sm font-semibold text-white">{profile.current_streak}</span>
-                      </div>
-                    )}
+                </motion.button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px] p-0">
+                <div className="flex flex-col h-full">
+                  {/* Profile Section */}
+                  <div 
+                    className="p-6 bg-gradient-primary cursor-pointer"
+                    onClick={() => handleMenuItemClick('/profile')}
+                  >
+                    <Avatar className="w-16 h-16 ring-2 ring-white/30 mb-3">
+                      <AvatarImage src={profile?.photo_url || ""} alt={profile?.name || "Profile"} />
+                      <AvatarFallback className="bg-white/20 text-white text-xl font-semibold">
+                        {profile?.name?.[0]?.toUpperCase() || <User className="w-6 h-6" />}
+                      </AvatarFallback>
+                    </Avatar>
+                    <h3 className="text-lg font-semibold text-white">{profile?.name || "Your Name"}</h3>
+                    <p className="text-sm text-white/70">My Profile</p>
                   </div>
-                </div>
 
-                {/* Menu Items */}
-                <div className="flex-1 p-4 space-y-1">
-                  <ReferralDialog referralCode={profile?.referral_code} profileId={profile?.id || ""}>
+                  {/* Menu Items */}
+                  <div className="flex-1 p-4 space-y-1">
+                    <ReferralDialog referralCode={profile?.referral_code} profileId={profile?.id || ""}>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start gap-3 h-12 text-base"
+                        onClick={() => triggerHaptic('selection')}
+                      >
+                        <Gift className="w-5 h-5 text-primary" />
+                        Refer & Get ₹250
+                      </Button>
+                    </ReferralDialog>
+
                     <Button 
                       variant="ghost" 
                       className="w-full justify-start gap-3 h-12 text-base"
-                      onClick={() => triggerHaptic('selection')}
+                      onClick={() => handleMenuItemClick('/settings')}
                     >
-                      <Gift className="w-5 h-5 text-primary" />
-                      Refer & Get ₹250
+                      <Settings className="w-5 h-5 text-muted-foreground" />
+                      Account Settings
                     </Button>
-                  </ReferralDialog>
+                  </div>
 
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start gap-3 h-12 text-base"
-                    onClick={() => handleMenuItemClick('/settings')}
-                  >
-                    <Settings className="w-5 h-5 text-muted-foreground" />
-                    Account Settings
-                  </Button>
+                  {/* Logout */}
+                  <div className="p-4 border-t">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start gap-3 h-12 text-base text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="w-5 h-5" />
+                      Logout
+                    </Button>
+                  </div>
                 </div>
+              </SheetContent>
+            </Sheet>
 
-                {/* Logout */}
-                <div className="p-4 border-t">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start gap-3 h-12 text-base text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="w-5 h-5" />
-                    Logout
-                  </Button>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+            {/* Streak Badge */}
+            {(profile?.current_streak !== undefined && profile?.current_streak !== null && profile.current_streak > 0) && (
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-md"
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>{profile.current_streak}</span>
+              </motion.div>
+            )}
+          </div>
 
           {/* Center: Navigation Items */}
           <nav className="flex items-center gap-3 sm:gap-6">

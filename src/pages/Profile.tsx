@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { 
   Camera, MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
   Edit2, Lightbulb, Heart, Plus, Loader2, Bell,
-  FileText, Phone, Mail, Building2, Video, Flame
+  FileText, Phone, Mail, Building2, Video, Zap
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -192,11 +192,11 @@ export default function Profile() {
               </div>
 
               {/* Streak Card */}
-              <div className="mt-6 p-4 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-xl border border-orange-500/20">
+              <div className="mt-6 p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center">
-                      <Flame className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                      <Zap className="w-6 h-6 text-white fill-current" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Current Streak</p>
