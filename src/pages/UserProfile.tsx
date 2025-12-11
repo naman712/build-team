@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   MapPin, Briefcase, GraduationCap, Link as LinkIcon, 
   Lightbulb, Heart, ArrowLeft, UserPlus, MessageCircle,
-  Mail, Phone, Video, Flame
+  Mail, Phone, Video, Zap
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -235,8 +235,8 @@ export default function UserProfile() {
               {/* Streak Display */}
               {(viewedProfile.current_streak !== undefined && viewedProfile.current_streak !== null && viewedProfile.current_streak > 0) && (
                 <div className="mt-4 flex items-center justify-center sm:justify-start gap-2">
-                  <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white px-3 py-1.5 rounded-full text-sm font-semibold shadow-lg shadow-orange-500/25">
-                    <Flame className="w-4 h-4 text-yellow-200" />
+                  <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-semibold shadow-lg shadow-amber-500/25">
+                    <Zap className="w-4 h-4 fill-current" />
                     {viewedProfile.current_streak} day streak
                   </div>
                 </div>
