@@ -144,6 +144,19 @@ interface RouteResponse {
   cacheControl?: string;
 }
 
+// OpenAPI specification
+const openApiSpec = {
+  openapi: "3.0.3",
+  info: {
+    title: "FounderNow API",
+    description: "REST API for FounderNow - Co-founder matching platform",
+    version: "1.0.0",
+    contact: { email: "naman@foundernow.in" }
+  },
+  servers: [{ url: "https://ttkvpfwoivjpvwmvegig.supabase.co/functions/v1/api", description: "Production" }],
+  externalDocs: { description: "Full OpenAPI Spec", url: "https://ttkvpfwoivjpvwmvegig.supabase.co/functions/v1/api/openapi.json" }
+};
+
 async function handleRoute(
   supabase: any,
   method: string,
@@ -156,6 +169,79 @@ async function handleRoute(
     return { 
       response: { status: "ok", version: API_VERSION, timestamp: new Date().toISOString() },
       cacheControl: "public, max-age=60"
+    };
+  }
+
+  // API Documentation endpoints (public)
+  if (path === "/docs" && method === "GET") {
+    return { 
+      response: {
+        title: "FounderNow API Documentation",
+        version: API_VERSION,
+        baseUrl: "https://ttkvpfwoivjpvwmvegig.supabase.co/functions/v1/api",
+        openApiSpec: "https://ttkvpfwoivjpvwmvegig.supabase.co/functions/v1/api/openapi.json",
+        endpoints: {
+          health: { method: "GET", path: "/health", auth: false },
+          docs: { method: "GET", path: "/docs", auth: false },
+          webhooks: { method: "POST", path: "/webhooks", auth: false },
+          profile: [
+            { method: "GET", path: "/profile", auth: true, description: "Get current user profile" },
+            { method: "PUT", path: "/profile", auth: true, description: "Update profile" },
+            { method: "GET", path: "/profile/:id", auth: true, description: "Get profile by ID" }
+          ],
+          posts: [
+            { method: "GET", path: "/posts", auth: true, description: "Get feed with pagination" },
+            { method: "POST", path: "/posts", auth: true, description: "Create post" },
+            { method: "GET", path: "/posts/:id", auth: true, description: "Get post by ID" },
+            { method: "POST", path: "/posts/:id/like", auth: true, description: "Toggle like" },
+            { method: "GET", path: "/posts/:id/comments", auth: true, description: "Get comments" },
+            { method: "POST", path: "/posts/:id/comments", auth: true, description: "Add comment" }
+          ],
+          connections: [
+            { method: "GET", path: "/connections", auth: true, description: "Get all connections" },
+            { method: "POST", path: "/connections", auth: true, description: "Send request" },
+            { method: "PUT", path: "/connections/:id", auth: true, description: "Accept/reject" },
+            { method: "DELETE", path: "/connections/:id", auth: true, description: "Withdraw/delete" }
+          ],
+          discover: [
+            { method: "GET", path: "/discover", auth: true, description: "Get profiles to match" }
+          ],
+          messages: [
+            { method: "GET", path: "/messages/:connectionId", auth: true, description: "Get messages" },
+            { method: "POST", path: "/messages", auth: true, description: "Send message" }
+          ],
+          notifications: [
+            { method: "GET", path: "/notifications", auth: true, description: "Get notifications" }
+          ],
+          streak: [
+            { method: "POST", path: "/streak", auth: true, description: "Update streak" }
+          ]
+        },
+        authentication: {
+          type: "Bearer Token",
+          header: "Authorization: Bearer <jwt_token>",
+          description: "Get JWT token from Supabase Auth login"
+        },
+        rateLimiting: {
+          limit: 100,
+          window: "1 minute",
+          headers: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"]
+        },
+        pagination: {
+          type: "cursor-based",
+          params: { limit: "number (default: 20, max: 50)", cursor: "ISO timestamp" },
+          response: { hasMore: "boolean", nextCursor: "string|null" }
+        }
+      },
+      cacheControl: "public, max-age=3600"
+    };
+  }
+
+  // OpenAPI JSON spec endpoint (public)
+  if (path === "/openapi.json" && method === "GET") {
+    return { 
+      response: openApiSpec,
+      cacheControl: "public, max-age=3600"
     };
   }
 
