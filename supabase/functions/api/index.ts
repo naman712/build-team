@@ -1,11 +1,69 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const API_VERSION = "v1";
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 100; // requests per window
+
+// In-memory rate limiting (use Redis for production clusters)
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-version",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+  "Access-Control-Expose-Headers": "x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset, x-api-version",
 };
+
+// Rate limiting check
+function checkRateLimit(clientId: string): { allowed: boolean; remaining: number; resetAt: number } {
+  const now = Date.now();
+  const record = rateLimitStore.get(clientId);
+
+  if (!record || now > record.resetAt) {
+    rateLimitStore.set(clientId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt: now + RATE_LIMIT_WINDOW };
+  }
+
+  if (record.count >= RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0, resetAt: record.resetAt };
+  }
+
+  record.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX - record.count, resetAt: record.resetAt };
+}
+
+// Standard API response helper
+function apiResponse(data: any, status = 200, extraHeaders: Record<string, string> = {}) {
+  return new Response(JSON.stringify({
+    success: status >= 200 && status < 300,
+    data,
+    meta: {
+      version: API_VERSION,
+      timestamp: new Date().toISOString(),
+    }
+  }), {
+    status,
+    headers: { 
+      ...corsHeaders, 
+      "Content-Type": "application/json",
+      "X-API-Version": API_VERSION,
+      "Cache-Control": "no-cache",
+      ...extraHeaders 
+    },
+  });
+}
+
+function errorResponse(message: string, code: string, status = 400) {
+  return new Response(JSON.stringify({
+    success: false,
+    error: { code, message },
+    meta: { version: API_VERSION, timestamp: new Date().toISOString() }
+  }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json", "X-API-Version": API_VERSION },
+  });
+}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -15,8 +73,29 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const path = url.pathname.replace("/api", "");
+    const path = url.pathname.replace("/api", "").replace(`/${API_VERSION}`, "");
     const authHeader = req.headers.get("Authorization");
+    
+    // Extract client identifier for rate limiting
+    const clientId = authHeader || req.headers.get("x-forwarded-for") || "anonymous";
+    
+    // Check rate limit
+    const rateLimit = checkRateLimit(clientId);
+    const rateLimitHeaders = {
+      "X-RateLimit-Limit": RATE_LIMIT_MAX.toString(),
+      "X-RateLimit-Remaining": rateLimit.remaining.toString(),
+      "X-RateLimit-Reset": Math.ceil(rateLimit.resetAt / 1000).toString(),
+    };
+
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: { code: "RATE_LIMIT_EXCEEDED", message: "Too many requests" }
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, ...rateLimitHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -29,30 +108,41 @@ serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error) {
-        return new Response(
-          JSON.stringify({ error: "Unauthorized", message: error.message }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Invalid or expired token", "UNAUTHORIZED", 401);
       }
       userId = user?.id || null;
     }
 
-    // Route handling
-    const response = await handleRoute(supabase, req.method, path, userId, req);
+    // Route handling with caching headers
+    const { response, cacheControl } = await handleRoute(supabase, req.method, path, userId, req);
     
-    return new Response(JSON.stringify(response), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return apiResponse(response, 200, { 
+      ...rateLimitHeaders,
+      ...(cacheControl ? { "Cache-Control": cacheControl } : {})
     });
   } catch (error: unknown) {
     console.error("API Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: "Internal Server Error", message: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    
+    // Return appropriate error codes based on error type
+    if (errorMessage.includes("not found")) {
+      return errorResponse(errorMessage, "NOT_FOUND", 404);
+    }
+    if (errorMessage.includes("Authentication required")) {
+      return errorResponse(errorMessage, "UNAUTHORIZED", 401);
+    }
+    if (errorMessage.includes("Permission denied")) {
+      return errorResponse(errorMessage, "FORBIDDEN", 403);
+    }
+    
+    return errorResponse(errorMessage, "INTERNAL_ERROR", 500);
   }
 });
+
+interface RouteResponse {
+  response: any;
+  cacheControl?: string;
+}
 
 async function handleRoute(
   supabase: any,
@@ -60,10 +150,20 @@ async function handleRoute(
   path: string,
   userId: string | null,
   req: Request
-) {
-  // Health check endpoint
+): Promise<RouteResponse> {
+  // Health check endpoint (public, cacheable)
   if (path === "/health" || path === "/") {
-    return { status: "ok", version: "1.0.0", timestamp: new Date().toISOString() };
+    return { 
+      response: { status: "ok", version: API_VERSION, timestamp: new Date().toISOString() },
+      cacheControl: "public, max-age=60"
+    };
+  }
+
+  // Webhook endpoint (public, for external integrations)
+  if (path === "/webhooks" && method === "POST") {
+    const body = await req.json();
+    console.log("Webhook received:", JSON.stringify(body));
+    return { response: { received: true } };
   }
 
   // Require authentication for all other routes
@@ -83,52 +183,93 @@ async function handleRoute(
   }
 
   const profileId = profile.id;
+  const url = new URL(req.url);
 
   // Profile routes
   if (path === "/profile" && method === "GET") {
-    return getProfile(supabase, profileId);
+    return { response: await getProfile(supabase, profileId), cacheControl: "private, max-age=30" };
   }
   if (path === "/profile" && method === "PUT") {
     const body = await req.json();
-    return updateProfile(supabase, profileId, body);
+    return { response: await updateProfile(supabase, profileId, body) };
+  }
+  if (path.match(/^\/profile\/[a-f0-9-]+$/) && method === "GET") {
+    const targetProfileId = path.replace("/profile/", "");
+    return { response: await getProfileById(supabase, targetProfileId), cacheControl: "public, max-age=60" };
   }
 
-  // Feed routes
+  // Feed routes with pagination
   if (path === "/posts" && method === "GET") {
-    const url = new URL(req.url);
-    const limit = parseInt(url.searchParams.get("limit") || "20");
-    const offset = parseInt(url.searchParams.get("offset") || "0");
-    return getPosts(supabase, limit, offset);
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 50);
+    const cursor = url.searchParams.get("cursor");
+    return { response: await getPosts(supabase, limit, cursor), cacheControl: "private, max-age=15" };
   }
   if (path === "/posts" && method === "POST") {
     const body = await req.json();
-    return createPost(supabase, profileId, body);
+    return { response: await createPost(supabase, profileId, body) };
+  }
+  if (path.match(/^\/posts\/[a-f0-9-]+$/) && method === "GET") {
+    const postId = path.replace("/posts/", "");
+    return { response: await getPostById(supabase, postId), cacheControl: "public, max-age=30" };
+  }
+  if (path.match(/^\/posts\/[a-f0-9-]+\/like$/) && method === "POST") {
+    const postId = path.replace("/posts/", "").replace("/like", "");
+    return { response: await toggleLike(supabase, profileId, postId) };
+  }
+  if (path.match(/^\/posts\/[a-f0-9-]+\/comments$/) && method === "GET") {
+    const postId = path.replace("/posts/", "").replace("/comments", "");
+    return { response: await getComments(supabase, postId), cacheControl: "private, max-age=15" };
+  }
+  if (path.match(/^\/posts\/[a-f0-9-]+\/comments$/) && method === "POST") {
+    const postId = path.replace("/posts/", "").replace("/comments", "");
+    const body = await req.json();
+    return { response: await addComment(supabase, profileId, postId, body) };
   }
 
   // Connections routes
   if (path === "/connections" && method === "GET") {
-    return getConnections(supabase, profileId);
+    return { response: await getConnections(supabase, profileId) };
   }
   if (path === "/connections" && method === "POST") {
     const body = await req.json();
-    return createConnection(supabase, profileId, body.receiverId);
+    return { response: await createConnection(supabase, profileId, body.receiverId) };
+  }
+  if (path.match(/^\/connections\/[a-f0-9-]+$/) && method === "PUT") {
+    const connectionId = path.replace("/connections/", "");
+    const body = await req.json();
+    return { response: await updateConnection(supabase, profileId, connectionId, body.status) };
+  }
+  if (path.match(/^\/connections\/[a-f0-9-]+$/) && method === "DELETE") {
+    const connectionId = path.replace("/connections/", "");
+    return { response: await deleteConnection(supabase, profileId, connectionId) };
   }
 
   // Discover/Match routes
   if (path === "/discover" && method === "GET") {
-    const url = new URL(req.url);
-    const limit = parseInt(url.searchParams.get("limit") || "10");
-    return getDiscoverProfiles(supabase, profileId, limit);
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "10"), 30);
+    return { response: await getDiscoverProfiles(supabase, profileId, limit) };
   }
 
   // Messages routes
-  if (path.startsWith("/messages/") && method === "GET") {
+  if (path.match(/^\/messages\/[a-f0-9-]+$/) && method === "GET") {
     const connectionId = path.replace("/messages/", "");
-    return getMessages(supabase, connectionId);
+    const cursor = url.searchParams.get("cursor");
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);
+    return { response: await getMessages(supabase, connectionId, limit, cursor) };
   }
   if (path === "/messages" && method === "POST") {
     const body = await req.json();
-    return sendMessage(supabase, profileId, body);
+    return { response: await sendMessage(supabase, profileId, body) };
+  }
+
+  // Notifications route
+  if (path === "/notifications" && method === "GET") {
+    return { response: await getNotifications(supabase, profileId) };
+  }
+
+  // Streak route
+  if (path === "/streak" && method === "POST") {
+    return { response: await updateStreak(supabase, profileId) };
   }
 
   throw new Error(`Route not found: ${method} ${path}`);
@@ -138,10 +279,21 @@ async function handleRoute(
 async function getProfile(supabase: any, profileId: string) {
   const { data, error } = await supabase
     .from("profiles")
+    .select(`*, experiences(*), education(*)`)
+    .eq("id", profileId)
+    .single();
+
+  if (error) throw error;
+  return { profile: data };
+}
+
+async function getProfileById(supabase: any, profileId: string) {
+  const { data, error } = await supabase
+    .from("profiles")
     .select(`
-      *,
-      experiences(*),
-      education(*)
+      id, name, photo_url, startup_name, city, country, looking_for, about_me, my_idea, 
+      interests, links, intro_video_url, current_streak, longest_streak, profile_completed,
+      experiences(*), education(*)
     `)
     .eq("id", profileId)
     .single();
@@ -151,9 +303,12 @@ async function getProfile(supabase: any, profileId: string) {
 }
 
 async function updateProfile(supabase: any, profileId: string, updates: any) {
+  // Remove sensitive fields that shouldn't be updated via API
+  const { email, phone, user_id, referral_code, successful_referrals, ...safeUpdates } = updates;
+  
   const { data, error } = await supabase
     .from("profiles")
-    .update(updates)
+    .update(safeUpdates)
     .eq("id", profileId)
     .select()
     .single();
@@ -162,9 +317,9 @@ async function updateProfile(supabase: any, profileId: string, updates: any) {
   return { profile: data };
 }
 
-// Posts handlers
-async function getPosts(supabase: any, limit: number, offset: number) {
-  const { data, error } = await supabase
+// Posts handlers with cursor-based pagination
+async function getPosts(supabase: any, limit: number, cursor: string | null) {
+  let query = supabase
     .from("posts")
     .select(`
       *,
@@ -173,10 +328,39 @@ async function getPosts(supabase: any, limit: number, offset: number) {
       post_comments(id)
     `)
     .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+    .limit(limit + 1);
+
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const hasMore = data.length > limit;
+  const posts = hasMore ? data.slice(0, -1) : data;
+  const nextCursor = hasMore ? posts[posts.length - 1]?.created_at : null;
+
+  return { 
+    posts, 
+    pagination: { limit, hasMore, nextCursor } 
+  };
+}
+
+async function getPostById(supabase: any, postId: string) {
+  const { data, error } = await supabase
+    .from("posts")
+    .select(`
+      *,
+      profiles:profile_id(id, name, photo_url, startup_name),
+      post_likes(id, profile_id),
+      post_comments(id, content, created_at, profile_id, profiles:profile_id(id, name, photo_url))
+    `)
+    .eq("id", postId)
+    .single();
 
   if (error) throw error;
-  return { posts: data, pagination: { limit, offset, hasMore: data.length === limit } };
+  return { post: data };
 }
 
 async function createPost(supabase: any, profileId: string, body: any) {
@@ -193,6 +377,51 @@ async function createPost(supabase: any, profileId: string, body: any) {
 
   if (error) throw error;
   return { post: data };
+}
+
+async function toggleLike(supabase: any, profileId: string, postId: string) {
+  // Check if already liked
+  const { data: existing } = await supabase
+    .from("post_likes")
+    .select("id")
+    .eq("profile_id", profileId)
+    .eq("post_id", postId)
+    .single();
+
+  if (existing) {
+    await supabase.from("post_likes").delete().eq("id", existing.id);
+    return { liked: false };
+  } else {
+    await supabase.from("post_likes").insert({ profile_id: profileId, post_id: postId });
+    return { liked: true };
+  }
+}
+
+async function getComments(supabase: any, postId: string) {
+  const { data, error } = await supabase
+    .from("post_comments")
+    .select(`*, profiles:profile_id(id, name, photo_url)`)
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return { comments: data };
+}
+
+async function addComment(supabase: any, profileId: string, postId: string, body: any) {
+  const { data, error } = await supabase
+    .from("post_comments")
+    .insert({
+      profile_id: profileId,
+      post_id: postId,
+      content: body.content,
+      parent_comment_id: body.parentCommentId || null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { comment: data };
 }
 
 // Connections handlers
@@ -218,11 +447,7 @@ async function getConnections(supabase: any, profileId: string) {
 async function createConnection(supabase: any, profileId: string, receiverId: string) {
   const { data, error } = await supabase
     .from("connections")
-    .insert({
-      requester_id: profileId,
-      receiver_id: receiverId,
-      status: "pending",
-    })
+    .insert({ requester_id: profileId, receiver_id: receiverId, status: "pending" })
     .select()
     .single();
 
@@ -230,26 +455,43 @@ async function createConnection(supabase: any, profileId: string, receiverId: st
   return { connection: data };
 }
 
+async function updateConnection(supabase: any, profileId: string, connectionId: string, status: string) {
+  const { data, error } = await supabase
+    .from("connections")
+    .update({ status })
+    .eq("id", connectionId)
+    .eq("receiver_id", profileId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { connection: data };
+}
+
+async function deleteConnection(supabase: any, profileId: string, connectionId: string) {
+  const { error } = await supabase
+    .from("connections")
+    .delete()
+    .eq("id", connectionId)
+    .or(`requester_id.eq.${profileId},receiver_id.eq.${profileId}`);
+
+  if (error) throw error;
+  return { deleted: true };
+}
+
 // Discover handlers
 async function getDiscoverProfiles(supabase: any, profileId: string, limit: number) {
-  // Get existing connections
   const { data: connections } = await supabase
     .from("connections")
     .select("requester_id, receiver_id")
     .or(`requester_id.eq.${profileId},receiver_id.eq.${profileId}`);
 
-  const connectedIds = connections?.flatMap((c: any) => 
-    [c.requester_id, c.receiver_id]
-  ) || [];
+  const connectedIds = connections?.flatMap((c: any) => [c.requester_id, c.receiver_id]) || [];
   connectedIds.push(profileId);
 
   const { data, error } = await supabase
     .from("profiles")
-    .select(`
-      *,
-      experiences(*),
-      education(*)
-    `)
+    .select(`*, experiences(*), education(*)`)
     .eq("profile_completed", true)
     .not("id", "in", `(${connectedIds.join(",")})`)
     .limit(limit);
@@ -258,19 +500,30 @@ async function getDiscoverProfiles(supabase: any, profileId: string, limit: numb
   return { profiles: data };
 }
 
-// Messages handlers
-async function getMessages(supabase: any, connectionId: string) {
-  const { data, error } = await supabase
+// Messages handlers with cursor pagination
+async function getMessages(supabase: any, connectionId: string, limit: number, cursor: string | null) {
+  let query = supabase
     .from("messages")
-    .select(`
-      *,
-      sender:sender_id(id, name, photo_url)
-    `)
+    .select(`*, sender:sender_id(id, name, photo_url)`)
     .eq("connection_id", connectionId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(limit + 1);
 
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
-  return { messages: data };
+
+  const hasMore = data.length > limit;
+  const messages = hasMore ? data.slice(0, -1) : data;
+  messages.reverse(); // Return in chronological order
+
+  return { 
+    messages, 
+    pagination: { limit, hasMore, nextCursor: hasMore ? messages[0]?.created_at : null } 
+  };
 }
 
 async function sendMessage(supabase: any, profileId: string, body: any) {
@@ -287,4 +540,51 @@ async function sendMessage(supabase: any, profileId: string, body: any) {
 
   if (error) throw error;
   return { message: data };
+}
+
+// Notifications handler
+async function getNotifications(supabase: any, profileId: string) {
+  // Get pending connection requests
+  const { data: connections } = await supabase
+    .from("connections")
+    .select(`*, requester:requester_id(id, name, photo_url)`)
+    .eq("receiver_id", profileId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  // Get recent likes on user's posts
+  const { data: likes } = await supabase
+    .from("post_likes")
+    .select(`
+      *, 
+      profiles:profile_id(id, name, photo_url),
+      posts!inner(id, profile_id, content)
+    `)
+    .eq("posts.profile_id", profileId)
+    .neq("profile_id", profileId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  // Get recent comments on user's posts
+  const { data: comments } = await supabase
+    .from("post_comments")
+    .select(`
+      *, 
+      profiles:profile_id(id, name, photo_url),
+      posts!inner(id, profile_id, content)
+    `)
+    .eq("posts.profile_id", profileId)
+    .neq("profile_id", profileId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  return { connections: connections || [], likes: likes || [], comments: comments || [] };
+}
+
+// Streak handler
+async function updateStreak(supabase: any, profileId: string) {
+  const { data, error } = await supabase.rpc("update_user_streak", { profile_uuid: profileId });
+  if (error) throw error;
+  return { currentStreak: data };
 }
