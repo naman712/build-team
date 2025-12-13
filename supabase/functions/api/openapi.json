@@ -1,0 +1,1038 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FounderNow API",
+    "description": "REST API for FounderNow - Co-founder matching platform. This API provides endpoints for profile management, posts/feed, connections, messaging, and discovery features.",
+    "version": "1.0.0",
+    "contact": {
+      "email": "naman@foundernow.in"
+    },
+    "license": {
+      "name": "Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://ttkvpfwoivjpvwmvegig.supabase.co/functions/v1/api",
+      "description": "Production API"
+    }
+  ],
+  "tags": [
+    { "name": "Health", "description": "API health and status" },
+    { "name": "Profile", "description": "User profile management" },
+    { "name": "Posts", "description": "Feed and post management" },
+    { "name": "Connections", "description": "Connection requests and management" },
+    { "name": "Discover", "description": "Co-founder discovery/matching" },
+    { "name": "Messages", "description": "Direct messaging between connections" },
+    { "name": "Notifications", "description": "User notifications" },
+    { "name": "Streak", "description": "Daily activity streak tracking" },
+    { "name": "Webhooks", "description": "External integration webhooks" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Returns API status and version information",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "tags": ["Profile"],
+        "summary": "Get current user's profile",
+        "description": "Returns the authenticated user's complete profile including experiences and education",
+        "operationId": "getMyProfile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "put": {
+        "tags": ["Profile"],
+        "summary": "Update current user's profile",
+        "description": "Updates the authenticated user's profile. Cannot update email, phone, user_id, referral_code, or successful_referrals.",
+        "operationId": "updateMyProfile",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/profile/{profileId}": {
+      "get": {
+        "tags": ["Profile"],
+        "summary": "Get profile by ID",
+        "description": "Returns a user's public profile (excludes email and phone for privacy)",
+        "operationId": "getProfileById",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProfileResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/posts": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "Get feed posts",
+        "description": "Returns paginated feed posts with cursor-based pagination",
+        "operationId": "getPosts",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20, "maximum": 50 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Cursor for pagination (created_at of last item)",
+            "schema": { "type": "string", "format": "date-time" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Posts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostsResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Create a new post",
+        "description": "Creates a new post in the feed",
+        "operationId": "createPost",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePost"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/posts/{postId}": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "Get post by ID",
+        "description": "Returns a single post with all comments and likes",
+        "operationId": "getPostById",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostDetailResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/posts/{postId}/like": {
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Toggle post like",
+        "description": "Likes or unlikes a post (toggles the like status)",
+        "operationId": "toggleLike",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Like toggled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LikeResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/posts/{postId}/comments": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "Get post comments",
+        "description": "Returns all comments for a post",
+        "operationId": "getComments",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comments retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentsResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Add a comment",
+        "description": "Adds a comment to a post (supports threaded replies)",
+        "operationId": "addComment",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateComment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comment added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/connections": {
+      "get": {
+        "tags": ["Connections"],
+        "summary": "Get all connections",
+        "description": "Returns pending, sent, and accepted connections",
+        "operationId": "getConnections",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Connections retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionsResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Connections"],
+        "summary": "Send connection request",
+        "description": "Sends a connection request to another user",
+        "operationId": "createConnection",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConnection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connection request sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/connections/{connectionId}": {
+      "put": {
+        "tags": ["Connections"],
+        "summary": "Update connection status",
+        "description": "Accept or reject a connection request",
+        "operationId": "updateConnection",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConnection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connection updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "delete": {
+        "tags": ["Connections"],
+        "summary": "Delete/withdraw connection",
+        "description": "Delete a connection or withdraw a pending request",
+        "operationId": "deleteConnection",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/discover": {
+      "get": {
+        "tags": ["Discover"],
+        "summary": "Get profiles to match with",
+        "description": "Returns profiles for swiping/matching (excludes already connected users)",
+        "operationId": "getDiscoverProfiles",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 10, "maximum": 30 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profiles retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/messages/{connectionId}": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Get messages for a connection",
+        "description": "Returns paginated messages for a specific connection",
+        "operationId": "getMessages",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50, "maximum": 100 }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Messages retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagesResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/messages": {
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Send a message",
+        "description": "Sends a message to a connected user",
+        "operationId": "sendMessage",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "Get user notifications",
+        "description": "Returns notifications for the authenticated user",
+        "operationId": "getNotifications",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/streak": {
+      "post": {
+        "tags": ["Streak"],
+        "summary": "Update user streak",
+        "description": "Updates the user's daily activity streak",
+        "operationId": "updateStreak",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Streak updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/webhooks": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Webhook endpoint",
+        "description": "Receives webhook payloads from external integrations",
+        "operationId": "receiveWebhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained from Supabase Auth"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": { "type": "object" },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string", "example": "ok" },
+              "version": { "type": "string", "example": "v1" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "user_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "photo_url": { "type": "string", "format": "uri" },
+          "age": { "type": "integer" },
+          "city": { "type": "string" },
+          "country": { "type": "string" },
+          "startup_name": { "type": "string" },
+          "looking_for": { "type": "string" },
+          "about_me": { "type": "string" },
+          "my_idea": { "type": "string" },
+          "interests": { "type": "array", "items": { "type": "string" } },
+          "links": { "type": "array", "items": { "type": "string" } },
+          "intro_video_url": { "type": "string", "format": "uri" },
+          "current_streak": { "type": "integer" },
+          "longest_streak": { "type": "integer" },
+          "profile_completed": { "type": "boolean" },
+          "referral_code": { "type": "string" },
+          "successful_referrals": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "experiences": { "type": "array", "items": { "$ref": "#/components/schemas/Experience" } },
+          "education": { "type": "array", "items": { "$ref": "#/components/schemas/Education" } }
+        }
+      },
+      "PublicProfile": {
+        "type": "object",
+        "description": "Profile without sensitive fields (email, phone)",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "photo_url": { "type": "string", "format": "uri" },
+          "startup_name": { "type": "string" },
+          "city": { "type": "string" },
+          "country": { "type": "string" },
+          "looking_for": { "type": "string" },
+          "about_me": { "type": "string" },
+          "my_idea": { "type": "string" },
+          "interests": { "type": "array", "items": { "type": "string" } },
+          "links": { "type": "array", "items": { "type": "string" } },
+          "intro_video_url": { "type": "string", "format": "uri" },
+          "current_streak": { "type": "integer" },
+          "longest_streak": { "type": "integer" },
+          "profile_completed": { "type": "boolean" },
+          "experiences": { "type": "array", "items": { "$ref": "#/components/schemas/Experience" } },
+          "education": { "type": "array", "items": { "$ref": "#/components/schemas/Education" } }
+        }
+      },
+      "ProfileUpdate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "photo_url": { "type": "string", "format": "uri" },
+          "age": { "type": "integer" },
+          "city": { "type": "string" },
+          "country": { "type": "string" },
+          "startup_name": { "type": "string" },
+          "looking_for": { "type": "string" },
+          "about_me": { "type": "string" },
+          "my_idea": { "type": "string" },
+          "interests": { "type": "array", "items": { "type": "string" } },
+          "links": { "type": "array", "items": { "type": "string" } },
+          "intro_video_url": { "type": "string", "format": "uri" }
+        }
+      },
+      "Experience": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "profile_id": { "type": "string", "format": "uuid" },
+          "company": { "type": "string" },
+          "role": { "type": "string" },
+          "duration": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Education": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "profile_id": { "type": "string", "format": "uuid" },
+          "school": { "type": "string" },
+          "degree": { "type": "string" },
+          "year": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Post": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "profile_id": { "type": "string", "format": "uuid" },
+          "content": { "type": "string" },
+          "image_url": { "type": "string", "format": "uri" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "profiles": { "$ref": "#/components/schemas/ProfileSummary" },
+          "post_likes": { "type": "array", "items": { "$ref": "#/components/schemas/Like" } },
+          "post_comments": { "type": "array", "items": { "$ref": "#/components/schemas/Comment" } }
+        }
+      },
+      "ProfileSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "photo_url": { "type": "string", "format": "uri" },
+          "startup_name": { "type": "string" }
+        }
+      },
+      "CreatePost": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": { "type": "string", "maxLength": 2000 },
+          "imageUrl": { "type": "string", "format": "uri" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Like": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "profile_id": { "type": "string", "format": "uuid" }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "profile_id": { "type": "string", "format": "uuid" },
+          "post_id": { "type": "string", "format": "uuid" },
+          "content": { "type": "string" },
+          "parent_comment_id": { "type": "string", "format": "uuid", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "profiles": { "$ref": "#/components/schemas/ProfileSummary" }
+        }
+      },
+      "CreateComment": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": { "type": "string", "maxLength": 500 },
+          "parentCommentId": { "type": "string", "format": "uuid", "description": "For threaded replies" }
+        }
+      },
+      "Connection": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "requester_id": { "type": "string", "format": "uuid" },
+          "receiver_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "requester": { "$ref": "#/components/schemas/ProfileSummary" },
+          "receiver": { "$ref": "#/components/schemas/ProfileSummary" }
+        }
+      },
+      "CreateConnection": {
+        "type": "object",
+        "required": ["receiverId"],
+        "properties": {
+          "receiverId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "UpdateConnection": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": { "type": "string", "enum": ["accepted", "rejected"] }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "connection_id": { "type": "string", "format": "uuid" },
+          "sender_id": { "type": "string", "format": "uuid" },
+          "content": { "type": "string" },
+          "attachment_url": { "type": "string", "format": "uri", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "read_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "SendMessage": {
+        "type": "object",
+        "required": ["connectionId", "content"],
+        "properties": {
+          "connectionId": { "type": "string", "format": "uuid" },
+          "content": { "type": "string", "maxLength": 2000 },
+          "attachmentUrl": { "type": "string", "format": "uri" }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "integer" },
+          "hasMore": { "type": "boolean" },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      },
+      "ProfileResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "profile": { "$ref": "#/components/schemas/Profile" } } } } }
+        ]
+      },
+      "PublicProfileResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "profile": { "$ref": "#/components/schemas/PublicProfile" } } } } }
+        ]
+      },
+      "PostsResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "posts": { "type": "array", "items": { "$ref": "#/components/schemas/Post" } }, "pagination": { "$ref": "#/components/schemas/Pagination" } } } } }
+        ]
+      },
+      "PostResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "post": { "$ref": "#/components/schemas/Post" } } } } }
+        ]
+      },
+      "PostDetailResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "post": { "$ref": "#/components/schemas/Post" } } } } }
+        ]
+      },
+      "LikeResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "liked": { "type": "boolean" } } } } }
+        ]
+      },
+      "CommentsResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "comments": { "type": "array", "items": { "$ref": "#/components/schemas/Comment" } } } } } }
+        ]
+      },
+      "CommentResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "comment": { "$ref": "#/components/schemas/Comment" } } } } }
+        ]
+      },
+      "ConnectionsResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "pending": { "type": "array", "items": { "$ref": "#/components/schemas/Connection" } }, "sent": { "type": "array", "items": { "$ref": "#/components/schemas/Connection" } }, "accepted": { "type": "array", "items": { "$ref": "#/components/schemas/Connection" } } } } } }
+        ]
+      },
+      "ConnectionResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "connection": { "$ref": "#/components/schemas/Connection" } } } } }
+        ]
+      },
+      "DiscoverResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "profiles": { "type": "array", "items": { "$ref": "#/components/schemas/PublicProfile" } } } } } }
+        ]
+      },
+      "MessagesResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } }, "pagination": { "$ref": "#/components/schemas/Pagination" } } } } }
+        ]
+      },
+      "MessageResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "message": { "$ref": "#/components/schemas/Message" } } } } }
+        ]
+      },
+      "NotificationsResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "notifications": { "type": "array" } } } } }
+        ]
+      },
+      "StreakResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "streak": { "type": "integer" } } } } }
+        ]
+      },
+      "DeleteResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "deleted": { "type": "boolean" } } } } }
+        ]
+      },
+      "WebhookResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          { "type": "object", "properties": { "data": { "type": "object", "properties": { "received": { "type": "boolean" } } } } }
+        ]
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Authentication required or invalid token",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "success": false,
+              "error": { "code": "UNAUTHORIZED", "message": "Authentication required" }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "success": false,
+              "error": { "code": "NOT_FOUND", "message": "Resource not found" }
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded",
+        "headers": {
+          "X-RateLimit-Limit": { "schema": { "type": "integer" } },
+          "X-RateLimit-Remaining": { "schema": { "type": "integer" } },
+          "X-RateLimit-Reset": { "schema": { "type": "integer" } }
+        },
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "success": false,
+              "error": { "code": "RATE_LIMIT_EXCEEDED", "message": "Too many requests" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
